@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LoopExecuteRequestV1",
+  "description": "Schema for the request body of the /loop/execute endpoint, version 1.",
+  "type": "object",
+  "properties": {
+    "request_id": {
+      "description": "A unique identifier for this execution request.",
+      "type": "string",
+      "format": "uuid"
+    },
+    "plan_input": {
+      "description": "The input plan or task details to be processed by the GovernanceCore. The exact structure of this object will depend on the specific plan schema being used by GovernanceCore for a given task.",
+      "type": "object"
+    },
+    "operator_override_signal": {
+      "description": "An optional field to pass an operator override signal.",
+      "type": ["object", "null"],
+      "properties": {
+        "override_signal_id": {
+          "description": "A unique identifier for this override signal.",
+          "type": "string"
+        },
+        "override_type": {
+          "description": "The type of override being requested.",
+          "type": "string",
+          "enum": ["HALT_IMMEDIATE", "FORCE_ACCEPT_PLAN", "MODIFY_TRUST_SCORE"]
+        },
+        "reason": {
+          "description": "The reason for this override.",
+          "type": "string"
+        },
+        "issuing_operator_id": {
+          "description": "The identifier of the operator issuing this override.",
+          "type": "string"
+        },
+        "target_loop_id": {
+          "description": "The loop ID this override targets.",
+          "type": "string"
+        },
+        "target_plan_id": {
+          "description": "The plan ID this override targets.",
+          "type": "string"
+        },
+        "trust_score_adjustment": {
+          "description": "For MODIFY_TRUST_SCORE overrides, the amount to adjust the trust score.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "override_signal_id",
+        "override_type",
+        "reason",
+        "issuing_operator_id"
+      ]
+    }
+  },
+  "required": [
+    "request_id",
+    "plan_input"
+  ]
+}

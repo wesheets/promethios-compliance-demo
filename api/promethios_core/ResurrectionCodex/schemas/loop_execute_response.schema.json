@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LoopExecuteResponseV1",
+  "description": "Schema for the response body from the /loop/execute endpoint, version 1.",
+  "type": "object",
+  "properties": {
+    "request_id": {
+      "description": "The unique identifier from the original request.",
+      "type": "string",
+      "format": "uuid"
+    },
+    "execution_status": {
+      "description": "Overall status of the loop execution.",
+      "type": "string",
+      "enum": ["SUCCESS", "FAILURE", "REJECTED"]
+    },
+    "governance_core_output": {
+      "description": "The direct output returned by the GovernanceCore.execute_loop() method. The structure is dependent on the specific task and GovernanceCore logic.",
+      "type": ["object", "array", "string", "number", "boolean", "null"]
+    },
+    "emotion_telemetry": {
+      "description": "The emotion telemetry object produced by GovernanceCore. Must conform to mgc_emotion_telemetry.schema.json. Null if not produced or in case of pre-execution failure.",
+      "type": ["object", "null"],
+      "$ref": "../../01_Minimal_Governance_Core_MGC/MGC_Schema_Registry/mgc_emotion_telemetry.schema.json"
+    },
+    "justification_log": {
+      "description": "The justification log object produced by GovernanceCore. Must conform to loop_justification_log.schema.v1.json (version v1.2.0). Null if not produced or in case of pre-execution failure.",
+      "type": ["object", "null"],
+      "$ref": "../../01_Minimal_Governance_Core_MGC/MGC_Schema_Registry/loop_justification_log.schema.v1.json"
+    },
+    "error_details": {
+      "description": "Details of any error if execution_status is FAILURE.",
+      "type": ["object", "null"],
+      "properties": {
+        "code": {
+          "description": "An error code if execution_status is FAILURE.",
+          "type": "string"
+        },
+        "message": {
+          "description": "A descriptive error message if execution_status is FAILURE.",
+          "type": "string"
+        },
+        "schema_validation_errors": {
+          "description": "Details of any schema validation failures for outputs.",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    }
+  },
+  "required": [
+    "request_id",
+    "execution_status"
+  ]
+}
