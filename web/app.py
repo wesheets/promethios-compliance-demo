@@ -26,7 +26,16 @@ def get_applications():
     response = requests.get(f"{API_URL}/api/applications?count={count}")
     
     if response.status_code == 200:
-        return jsonify(response.json())
+        applications = response.json()
+        # Ensure we're returning an array
+        if not isinstance(applications, list):
+            # If it's not a list, check if it might be wrapped in an object
+            if isinstance(applications, dict) and 'applications' in applications:
+                applications = applications['applications']
+            else:
+                # If we can't extract an array, return an empty array
+                applications = []
+        return jsonify(applications)
     else:
         return jsonify({"error": "Failed to fetch applications"}), response.status_code
 

@@ -64,10 +64,34 @@
     <script>
         // Fetch applications on page load
         fetch('/api/applications')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(applications => {
                 const appList = document.getElementById('applications-list');
                 appList.innerHTML = '';
+                
+                // Enhanced error handling for applications data
+                if (!applications) {
+                    appList.innerHTML = '<div class="alert alert-warning">No applications data received</div>';
+                    console.error('Applications data is null or undefined');
+                    return;
+                }
+                
+                // Check if applications is an array before using forEach
+                if (!Array.isArray(applications)) {
+                    appList.innerHTML = '<div class="alert alert-warning">Invalid response format: expected array but got ' + typeof applications + '</div>';
+                    console.error('Applications is not an array:', applications);
+                    return;
+                }
+                
+                if (applications.length === 0) {
+                    appList.innerHTML = '<div class="alert alert-info">No applications available</div>';
+                    return;
+                }
                 
                 applications.forEach(app => {
                     const appCard = document.createElement('div');
@@ -94,6 +118,7 @@
             })
             .catch(error => {
                 document.getElementById('applications-list').innerHTML = `<div class="alert alert-danger">Error loading applications: ${error.message}</div>`;
+                console.error('Error loading applications:', error);
             });
         
         // Process application
