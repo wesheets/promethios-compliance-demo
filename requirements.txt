@@ -1,0 +1,12 @@
+# This file is for Render's build system
+# It includes dependencies for both API and web components
+fastapi==0.110.1
+uvicorn==0.29.0
+flask==3.1.0
+requests==2.31.0
+pandas==2.2.0
+jsonschema==4.21.1
+bootstrap-flask==2.3.3
+flask-wtf==1.2.1
+gunicorn==21.2.0
+python-dotenv==1.0.0

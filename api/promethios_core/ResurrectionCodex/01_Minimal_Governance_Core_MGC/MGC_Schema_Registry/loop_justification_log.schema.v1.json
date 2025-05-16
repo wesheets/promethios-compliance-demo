@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LoopJustificationLogV1",
+  "description": "Schema for the MGC justification log, version 1.2.0.",
+  "type": "object",
+  "properties": {
+    "agent_id": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "plan_id": {
+      "type": "string"
+    },
+    "loop_id": {
+      "type": "string"
+    },
+    "decision_outcome": {
+      "type": "string"
+    },
+    "rejection_reason": {
+      "type": ["string", "null"]
+    },
+    "override_required": {
+      "type": "boolean"
+    },
+    "trust_score_at_decision": {
+      "type": "number"
+    },
+    "emotion_state_at_decision": {
+      "type": "string"
+    },
+    "validation_passed": {
+      "type": "boolean"
+    },
+    "schema_versions": {
+      "type": "object",
+      "properties": {
+        "emotion_telemetry": {"type": "string"},
+        "justification_log": {"type": "string"}
+      },
+      "required": ["emotion_telemetry", "justification_log"]
+    }
+  },
+  "required": [
+    "agent_id",
+    "timestamp",
+    "plan_id",
+    "loop_id",
+    "decision_outcome",
+    "override_required",
+    "trust_score_at_decision",
+    "emotion_state_at_decision",
+    "validation_passed",
+    "schema_versions"
+  ]
+}

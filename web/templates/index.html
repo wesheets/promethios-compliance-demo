@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Promethios Compliance Demo</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <style>
+        .card { margin-bottom: 20px; }
+        .compliance-pass { color: green; }
+        .compliance-fail { color: red; }
+        .loading { opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Promethios Compliance Replay Demo</h1>
+        <p class="lead">AI Governance for Regulatory Compliance</p>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Loan Applications</span>
+                            <div class="form-group">
+                                <select class="form-select form-select-sm" id="framework-select">
+                                    <option value="EU_AI_ACT">EU AI Act</option>
+                                    <option value="FINRA">FINRA</option>
+                                    <option value="internal">Internal</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="applications-list">Loading applications...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Compliance Results
+                    </div>
+                    <div class="card-body">
+                        <div id="compliance-results">Select an application to process</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        Processed Decisions
+                    </div>
+                    <div class="card-body">
+                        <div id="decisions-list">No decisions processed yet</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Fetch applications on page load
+        fetch('/api/applications')
+            .then(response => response.json())
+            .then(applications => {
+                const appList = document.getElementById('applications-list');
+                appList.innerHTML = '';
+                
+                applications.forEach(app => {
+                    const appCard = document.createElement('div');
+                    appCard.className = 'card mb-2';
+                    appCard.innerHTML = `
+                        <div class="card-body">
+                            <h5 class="card-title">Application ${app.id}</h5>
+                            <p>Amount: $${app.loan_amount}</p>
+                            <p>Purpose: ${app.purpose}</p>
+                            <p>Grade: ${app.grade}</p>
+                            <button class="btn btn-primary process-btn" data-id="${app.id}">Process</button>
+                        </div>
+                    `;
+                    appList.appendChild(appCard);
+                });
+                
+                // Add event listeners to process buttons
+                document.querySelectorAll('.process-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const appId = this.getAttribute('data-id');
+                        processApplication(appId);
+                    });
+                });
+            })
+            .catch(error => {
+                document.getElementById('applications-list').innerHTML = `<div class="alert alert-danger">Error loading applications: ${error.message}</div>`;
+            });
+        
+        // Process application
+        function processApplication(appId) {
+            const framework = document.getElementById('framework-select').value;
+            const resultsDiv = document.getElementById('compliance-results');
+            
+            resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p>Processing...</p></div>';
+            
+            fetch('/api/process', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    application_id: appId,
+                    framework: framework
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                const compliant = result.compliance_result.compliant;
+                const complianceClass = compliant ? 'compliance-pass' : 'compliance-fail';
+                
+                resultsDiv.innerHTML = `
+                    <div class="card">
+                        <div class="card-header ${complianceClass}">
+                            ${compliant ? 'COMPLIANT' : 'NON-COMPLIANT'}
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Framework:</strong> ${result.framework}</p>
+                            <p><strong>Details:</strong> ${result.compliance_result.details}</p>
+                            ${!compliant ? `<p><strong>Remediation:</strong> ${result.compliance_result.remediation}</p>` : ''}
+                            <p><strong>Decision ID:</strong> ${result.decision_id}</p>
+                            <button class="btn btn-sm btn-info verify-btn" data-id="${result.decision_id}">Verify</button>
+                        </div>
+                    </div>
+                `;
+                
+                // Add event listener to verify button
+                document.querySelector('.verify-btn').addEventListener('click', function() {
+                    const decisionId = this.getAttribute('data-id');
+                    verifyDecision(decisionId);
+                });
+                
+                // Update decisions list
+                updateDecisionsList();
+            })
+            .catch(error => {
+                resultsDiv.innerHTML = `<div class="alert alert-danger">Error processing application: ${error.message}</div>`;
+            });
+        }
+        
+        // Verify decision
+        function verifyDecision(decisionId) {
+            const resultsDiv = document.getElementById('compliance-results');
+            const currentContent = resultsDiv.innerHTML;
+            
+            resultsDiv.innerHTML = currentContent + '<div class="mt-3 text-center"><div class="spinner-border" role="status"></div><p>Verifying...</p></div>';
+            
+            fetch(`/api/verify/${decisionId}`)
+                .then(response => response.json())
+                .then(result => {
+                    const verificationDiv = document.createElement('div');
+                    verificationDiv.className = 'alert alert-info mt-3';
+                    verificationDiv.innerHTML = `
+                        <h5>Verification Result</h5>
+                        <p><strong>Status:</strong> ${result.verified ? 'Verified' : 'Failed'}</p>
+                        <p><strong>Method:</strong> ${result.verification_method}</p>
+                        <p><strong>Timestamp:</strong> ${result.timestamp}</p>
+                    `;
+                    
+                    // Replace the loading spinner
+                    resultsDiv.removeChild(resultsDiv.lastChild);
+                    resultsDiv.appendChild(verificationDiv);
+                })
+                .catch(error => {
+                    resultsDiv.innerHTML = currentContent + `<div class="alert alert-danger mt-3">Error verifying decision: ${error.message}</div>`;
+                });
+        }
+        
+        // Update decisions list
+        function updateDecisionsList() {
+            fetch('/api/decisions')
+                .then(response => response.json())
+                .then(decisions => {
+                    const decisionsDiv = document.getElementById('decisions-list');
+                    
+                    if (decisions.length === 0) {
+                        decisionsDiv.innerHTML = 'No decisions processed yet';
+                        return;
+                    }
+                    
+                    decisionsDiv.innerHTML = '<div class="table-responsive"><table class="table table-striped"><thead><tr><th>ID</th><th>Application</th><th>Framework</th><th>Status</th><th>Actions</th></tr></thead><tbody id="decisions-table-body"></tbody></table></div>';
+                    
+                    const tableBody = document.getElementById('decisions-table-body');
+                    
+                    decisions.forEach(decision => {
+                        const compliant = decision.compliance_result.compliant;
+                        const row = document.createElement('tr');
+                        
+                        row.innerHTML = `
+                            <td>${decision.decision_id}</td>
+                            <td>${decision.application_id}</td>
+                            <td>${decision.framework}</td>
+                            <td class="${compliant ? 'compliance-pass' : 'compliance-fail'}">${compliant ? 'COMPLIANT' : 'NON-COMPLIANT'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info view-btn" data-id="${decision.decision_id}">View</button>
+                                <button class="btn btn-sm btn-secondary verify-list-btn" data-id="${decision.decision_id}">Verify</button>
+                            </td>
+                        `;
+                        
+                        tableBody.appendChild(row);
+                    });
+                    
+                    // Add event listeners to buttons
+                    document.querySelectorAll('.view-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const decisionId = this.getAttribute('data-id');
+                            viewDecision(decisionId);
+                        });
+                    });
+                    
+                    document.querySelectorAll('.verify-list-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const decisionId = this.getAttribute('data-id');
+                            verifyDecision(decisionId);
+                        });
+                    });
+                })
+                .catch(error => {
+                    document.getElementById('decisions-list').innerHTML = `<div class="alert alert-danger">Error loading decisions: ${error.message}</div>`;
+                });
+        }
+        
+        // View decision details
+        function viewDecision(decisionId) {
+            fetch(`/api/decision/${decisionId}`)
+                .then(response => response.json())
+                .then(decision => {
+                    const resultsDiv = document.getElementById('compliance-results');
+                    const compliant = decision.compliance_result.compliant;
+                    const complianceClass = compliant ? 'compliance-pass' : 'compliance-fail';
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="card">
+                            <div class="card-header ${complianceClass}">
+                                ${compliant ? 'COMPLIANT' : 'NON-COMPLIANT'}
+                            </div>
+                            <div class="card-body">
+                                <p><strong>Framework:</strong> ${decision.framework}</p>
+                                <p><strong>Details:</strong> ${decision.compliance_result.details}</p>
+                                ${!compliant ? `<p><strong>Remediation:</strong> ${decision.compliance_result.remediation}</p>` : ''}
+                                <p><strong>Decision ID:</strong> ${decision.decision_id}</p>
+                                <p><strong>Timestamp:</strong> ${decision.timestamp}</p>
+                                <button class="btn btn-sm btn-info verify-btn" data-id="${decision.decision_id}">Verify</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add event listener to verify button
+                    document.querySelector('.verify-btn').addEventListener('click', function() {
+                        const decId = this.getAttribute('data-id');
+                        verifyDecision(decId);
+                    });
+                })
+                .catch(error => {
+                    document.getElementById('compliance-results').innerHTML = `<div class="alert alert-danger">Error loading decision: ${error.message}</div>`;
+                });
+        }
+    </script>
+</body>
+</html>

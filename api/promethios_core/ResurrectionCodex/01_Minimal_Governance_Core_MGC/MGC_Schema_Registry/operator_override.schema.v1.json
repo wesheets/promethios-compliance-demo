@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OperatorOverrideV1",
+  "description": "Schema for the operator override signal, version 1.",
+  "type": "object",
+  "properties": {
+    "override_type": {
+      "type": "string",
+      "enum": ["HALT_IMMEDIATE", "MODIFY_PARAMETERS", "APPROVE_ACTION"]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "parameters": {
+      "type": ["object", "null"]
+    }
+  },
+  "required": [
+    "override_type",
+    "reason"
+  ]
+}

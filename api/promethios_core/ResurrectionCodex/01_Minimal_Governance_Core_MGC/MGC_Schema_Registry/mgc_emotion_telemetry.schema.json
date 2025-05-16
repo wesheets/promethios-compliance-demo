@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MGCEmotionTelemetry",
+  "description": "Schema for MGC emotion telemetry.",
+  "type": "object",
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "current_emotion_state": {
+      "type": "string"
+    },
+    "contributing_factors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "factor": {"type": "string"},
+          "influence": {"type": "number"}
+        },
+        "required": ["factor", "influence"]
+      }
+    },
+    "trust_score": {
+      "type": "number"
+    }
+  },
+  "required": ["timestamp", "current_emotion_state", "trust_score"]
+}
