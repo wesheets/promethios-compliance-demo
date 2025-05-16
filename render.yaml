@@ -7,7 +7,7 @@ services:
     startCommand: cd api && gunicorn promethios_api:app --bind 0.0.0.0:$PORT --worker-class uvicorn.workers.UvicornWorker
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.0
+        value: 3.10.0
       - key: WEB_URL
         fromService:
           name: promethios-compliance-web
