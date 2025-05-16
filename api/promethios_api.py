@@ -2,7 +2,7 @@ import os
 import sys
 import json
 import jsonschema
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -31,6 +31,17 @@ try:
 except ImportError:
     print(f"Error: Could not import Promethios core components from {PROMETHIOS_KERNEL_PATH}")
     print("Please ensure PROMETHIOS_KERNEL_PATH is set correctly")
+    sys.exit(1)
+
+# Import Compliance API components
+try:
+    sys.path.append("./compliance_api")
+    from compliance_api.compliance_api import app as compliance_app
+    from compliance_api.compliance_wrapper import ComplianceWrapper
+    from compliance_api.data_loader import LoanDataLoader
+except ImportError as e:
+    print(f"Error: Could not import Compliance API components: {e}")
+    print("Please ensure compliance_api directory is available")
     sys.exit(1)
 
 # Create FastAPI app
@@ -173,6 +184,77 @@ async def health_check():
         "version": "1.0.0",
         "web_url": WEB_URL
     }
+
+# Include all routes from the compliance API
+# Mount the compliance API routes
+from fastapi import APIRouter
+compliance_router = APIRouter()
+
+@compliance_router.get("/api/applications", summary="Get Loan Applications", tags=["Compliance"])
+async def get_applications(count: int = 5):
+    data_loader = LoanDataLoader()
+    applications = data_loader.load_loan_applications(count)
+    return applications
+
+@compliance_router.post("/api/process", summary="Process Loan Application", tags=["Compliance"])
+async def process_application(request: Request):
+    try:
+        data = await request.json()
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+    
+    data_loader = LoanDataLoader()
+    compliance_wrapper = ComplianceWrapper()
+    
+    # Get application ID
+    application_id = data.get("application_id")
+    if not application_id:
+        raise HTTPException(status_code=400, detail="Missing application_id")
+    
+    # Get regulatory framework
+    framework = data.get("framework", "GDPR")
+    
+    # Get application data
+    application = data_loader.get_application_by_id(application_id)
+    if not application:
+        raise HTTPException(status_code=404, detail=f"Application {application_id} not found")
+    
+    # Evaluate compliance
+    compliance_result = compliance_wrapper.evaluate_compliance(application, framework)
+    
+    # Generate decision ID
+    decision_id = f"decision_{application_id}_{framework}"
+    
+    # Store decision
+    decision = {
+        "decision_id": decision_id,
+        "application_id": application_id,
+        "framework": framework,
+        "timestamp": "2023-04-15T10:30:00Z",  # Fixed for demo
+        "compliance_result": compliance_result,
+        "application_data": application
+    }
+    
+    # For demo purposes, we'll just return the decision
+    return decision
+
+@compliance_router.get("/api/decisions", summary="Get All Decisions", tags=["Compliance"])
+async def get_decisions():
+    # For demo purposes, return an empty list
+    return []
+
+@compliance_router.get("/api/decision/{decision_id}", summary="Get Decision by ID", tags=["Compliance"])
+async def get_decision(decision_id: str):
+    # For demo purposes, return a not found error
+    raise HTTPException(status_code=404, detail=f"Decision {decision_id} not found")
+
+@compliance_router.get("/api/verify/{decision_id}", summary="Verify Decision Integrity", tags=["Compliance"])
+async def verify_decision(decision_id: str):
+    # For demo purposes, return a not found error
+    raise HTTPException(status_code=404, detail=f"Decision {decision_id} not found")
+
+# Include the compliance router in the main app
+app.include_router(compliance_router)
 
 # Run the app if executed directly
 if __name__ == "__main__":
