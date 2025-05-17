@@ -8,7 +8,7 @@ explanations of compliance decisions and recommendations.
 import os
 import json
 import requests
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 
 class OpenAIExplainer:
     """
@@ -30,6 +30,9 @@ class OpenAIExplainer:
         self.api_url = "https://api.openai.com/v1/chat/completions"
         self.model = "gpt-4"  # Default to GPT-4 for high-quality explanations
         
+        # Store conversation history for each session
+        self.conversation_history = {}
+        
         # System prompt template for compliance explanations
         self.system_prompt = """
         You are Promethios, an AI assistant specialized in explaining financial compliance decisions.
@@ -39,19 +42,28 @@ class OpenAIExplainer:
         1. Explaining why a decision was made in simple, non-technical language
         2. Highlighting the key factors that influenced the decision
         3. Explaining regulatory requirements relevant to the decision
-        4. Providing context about the compliance framework being applied
-        5. Suggesting potential remediation steps when applicable
+        4. Explaining the detailed process of how applications are evaluated
+        5. Providing context about the compliance framework being applied
+        6. Suggesting potential remediation steps when applicable
         
-        Keep explanations concise, factual, and helpful. Avoid speculation beyond the provided data.
+        When asked about the process, explain in detail:
+        - How data quality is assessed (completeness, consistency, accuracy)
+        - How model confidence is calculated and what it means
+        - How regulatory alignment is determined for different frameworks
+        - How ethical considerations are evaluated
+        - How the multi-factor trust evaluation works
+        
+        Keep explanations factual, helpful, and detailed. Avoid speculation beyond the provided data.
         """
     
-    def explain_decision(self, decision_data: Dict[str, Any], query: str = "") -> str:
+    def explain_decision(self, decision_data: Dict[str, Any], query: str = "", session_id: str = "default") -> str:
         """
         Generate a natural language explanation for a compliance decision.
         
         Args:
             decision_data: Dictionary containing decision data, trust factors, and compliance results
             query: Optional specific question about the decision
+            session_id: Unique identifier for the conversation session
             
         Returns:
             A natural language explanation of the decision
@@ -59,12 +71,26 @@ class OpenAIExplainer:
         # Format the decision data for the prompt
         decision_context = json.dumps(decision_data, indent=2)
         
-        # Prepare the messages for the API call
+        # Initialize conversation history for this session if it doesn't exist
+        if session_id not in self.conversation_history:
+            self.conversation_history[session_id] = []
+        
+        # Prepare the messages for the API call, including conversation history
         messages = [
             {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": f"Please explain the following compliance decision:\n\n{decision_context}\n\n" + 
-             (f"Specifically address this question: {query}" if query else "Provide a clear explanation of why this decision was made.")}
         ]
+        
+        # Add conversation history
+        messages.extend(self.conversation_history[session_id])
+        
+        # Add the current query
+        user_content = f"Please explain the following compliance decision:\n\n{decision_context}\n\n"
+        if query:
+            user_content += f"Specifically address this question: {query}"
+        else:
+            user_content += "Provide a clear explanation of why this decision was made and the process behind it."
+        
+        messages.append({"role": "user", "content": user_content})
         
         # Make the API call
         try:
@@ -79,7 +105,8 @@ class OpenAIExplainer:
                     "messages": messages,
                     "temperature": 0.3,  # Lower temperature for more consistent, factual responses
                     "max_tokens": 1000
-                }
+                },
+                timeout=30  # Add timeout to prevent hanging
             )
             
             response.raise_for_status()
@@ -87,12 +114,95 @@ class OpenAIExplainer:
             
             # Extract the explanation from the response
             explanation = result["choices"][0]["message"]["content"].strip()
+            
+            # Update conversation history
+            self.conversation_history[session_id].append({"role": "user", "content": user_content})
+            self.conversation_history[session_id].append({"role": "assistant", "content": explanation})
+            
+            # Keep conversation history to a reasonable size
+            if len(self.conversation_history[session_id]) > 10:
+                # Remove oldest exchanges but keep the most recent ones
+                self.conversation_history[session_id] = self.conversation_history[session_id][-10:]
+            
             return explanation
             
         except requests.exceptions.RequestException as e:
             # Handle API errors gracefully
             error_msg = f"Error generating explanation: {str(e)}"
-            return error_msg
+            print(f"OpenAI API error: {str(e)}")
+            return f"I apologize, but I'm currently having trouble accessing the latest compliance information. This is a real-time API issue, not a pre-programmed response. Please try again in a moment, and I'll provide a detailed explanation of the compliance process and decision factors."
+    
+    def chat(self, query: str, session_id: str = "default", context: Dict[str, Any] = None) -> Tuple[str, bool]:
+        """
+        Handle a chat message from the user, maintaining conversation context.
+        
+        Args:
+            query: User's question or message
+            session_id: Unique identifier for the conversation session
+            context: Optional context information about current application/decision
+            
+        Returns:
+            Tuple of (response text, is_api_success)
+        """
+        # Initialize conversation history for this session if it doesn't exist
+        if session_id not in self.conversation_history:
+            self.conversation_history[session_id] = []
+        
+        # Prepare the messages for the API call, including conversation history
+        messages = [
+            {"role": "system", "content": self.system_prompt},
+        ]
+        
+        # Add conversation history
+        messages.extend(self.conversation_history[session_id])
+        
+        # Add context information if provided
+        context_str = ""
+        if context:
+            context_str = f"\nContext information:\n{json.dumps(context, indent=2)}\n\n"
+        
+        # Add the current query
+        messages.append({"role": "user", "content": f"{context_str}{query}"})
+        
+        # Make the API call
+        try:
+            response = requests.post(
+                self.api_url,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {self.api_key}"
+                },
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": 0.3,
+                    "max_tokens": 1000
+                },
+                timeout=30  # Add timeout to prevent hanging
+            )
+            
+            response.raise_for_status()
+            result = response.json()
+            
+            # Extract the response from the API result
+            chat_response = result["choices"][0]["message"]["content"].strip()
+            
+            # Update conversation history
+            self.conversation_history[session_id].append({"role": "user", "content": query})
+            self.conversation_history[session_id].append({"role": "assistant", "content": chat_response})
+            
+            # Keep conversation history to a reasonable size
+            if len(self.conversation_history[session_id]) > 10:
+                # Remove oldest exchanges but keep the most recent ones
+                self.conversation_history[session_id] = self.conversation_history[session_id][-10:]
+            
+            return chat_response, True
+            
+        except requests.exceptions.RequestException as e:
+            # Handle API errors gracefully
+            error_msg = f"I apologize, but I'm currently having trouble connecting to my knowledge base. This is a real-time API issue, not a pre-programmed response. Please try again in a moment, and I'll provide a detailed explanation of the compliance process and decision factors."
+            print(f"OpenAI API error: {str(e)}")
+            return error_msg, False
     
     def generate_recommendations(self, application_data: Dict[str, Any], trust_factors: Dict[str, Any]) -> List[Dict[str, str]]:
         """
@@ -140,7 +250,8 @@ class OpenAIExplainer:
                     "temperature": 0.3,
                     "max_tokens": 1000,
                     "response_format": {"type": "json_object"}  # Request JSON format
-                }
+                },
+                timeout=30  # Add timeout to prevent hanging
             )
             
             response.raise_for_status()

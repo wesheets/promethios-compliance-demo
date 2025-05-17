@@ -1,0 +1,377 @@
+<!-- Persistent Chat Bubble Component -->
+<div id="chat-bubble-container" class="chat-bubble-container">
+    <div id="chat-bubble-toggle" class="chat-bubble-toggle">
+        <i class="fas fa-comments"></i>
+    </div>
+    <div id="chat-panel" class="chat-panel">
+        <div class="chat-header">
+            <h3>Promethios Assistant</h3>
+            <button id="close-chat" class="close-chat">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="chat-messages" class="chat-messages">
+            <div class="message assistant">
+                <div class="message-content">
+                    Hello! I'm Promethios, your AI compliance assistant. How can I help you understand the compliance process today?
+                </div>
+            </div>
+        </div>
+        <div class="chat-input-container">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Ask about compliance process...">
+            <button id="send-message" class="send-message">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.chat-bubble-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.chat-bubble-toggle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #4a6cf7;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.chat-bubble-toggle:hover {
+    background-color: #3a5ce5;
+    transform: scale(1.05);
+}
+
+.chat-bubble-toggle i {
+    font-size: 24px;
+}
+
+.chat-panel {
+    position: absolute;
+    bottom: 70px;
+    right: 0;
+    width: 350px;
+    height: 500px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    display: none;
+}
+
+.chat-header {
+    padding: 15px;
+    background-color: #4a6cf7;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-header h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.close-chat {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.message {
+    max-width: 80%;
+    padding: 10px 15px;
+    border-radius: 18px;
+    margin-bottom: 5px;
+    word-wrap: break-word;
+}
+
+.message.user {
+    align-self: flex-end;
+    background-color: #e3f2fd;
+    border-bottom-right-radius: 5px;
+}
+
+.message.assistant {
+    align-self: flex-start;
+    background-color: #f5f5f5;
+    border-bottom-left-radius: 5px;
+}
+
+.message-content {
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.chat-input-container {
+    display: flex;
+    padding: 15px;
+    border-top: 1px solid #eee;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    outline: none;
+    font-size: 14px;
+}
+
+.chat-input:focus {
+    border-color: #4a6cf7;
+}
+
+.send-message {
+    background: none;
+    border: none;
+    color: #4a6cf7;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0 10px;
+}
+
+.send-message:hover {
+    color: #3a5ce5;
+}
+
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #f5f5f5;
+    border-radius: 18px;
+    border-bottom-left-radius: 5px;
+    align-self: flex-start;
+    margin-bottom: 5px;
+}
+
+.typing-indicator span {
+    height: 8px;
+    width: 8px;
+    background-color: #999;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+    animation: typing 1s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+    animation-delay: 0.4s;
+    margin-right: 0;
+}
+
+@keyframes typing {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0px); }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chat bubble functionality
+    const chatBubbleToggle = document.getElementById('chat-bubble-toggle');
+    const chatPanel = document.getElementById('chat-panel');
+    const closeChat = document.getElementById('close-chat');
+    const chatInput = document.getElementById('chat-input');
+    const sendMessage = document.getElementById('send-message');
+    const chatMessages = document.getElementById('chat-messages');
+    
+    // Session ID for conversation tracking
+    const sessionId = generateSessionId();
+    let conversationContext = {};
+    
+    // Toggle chat panel
+    chatBubbleToggle.addEventListener('click', function() {
+        chatPanel.style.display = chatPanel.style.display === 'flex' ? 'none' : 'flex';
+        if (chatPanel.style.display === 'flex') {
+            chatInput.focus();
+        }
+    });
+    
+    // Close chat panel
+    closeChat.addEventListener('click', function() {
+        chatPanel.style.display = 'none';
+    });
+    
+    // Send message on button click
+    sendMessage.addEventListener('click', function() {
+        sendUserMessage();
+    });
+    
+    // Send message on Enter key
+    chatInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendUserMessage();
+        }
+    });
+    
+    // Function to send user message
+    function sendUserMessage() {
+        const message = chatInput.value.trim();
+        if (message) {
+            // Add user message to chat
+            addMessage(message, 'user');
+            
+            // Clear input
+            chatInput.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            // Get current page context
+            updateConversationContext();
+            
+            // Send to backend API
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message,
+                    session_id: sessionId,
+                    context: conversationContext
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Remove typing indicator
+                removeTypingIndicator();
+                
+                // Add assistant response
+                addMessage(data.response, 'assistant');
+                
+                // Scroll to bottom
+                scrollToBottom();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                removeTypingIndicator();
+                addMessage("I'm sorry, I'm having trouble connecting to my knowledge base. Please try again in a moment.", 'assistant');
+                scrollToBottom();
+            });
+        }
+    }
+    
+    // Function to add message to chat
+    function addMessage(content, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        messageContent.textContent = content;
+        
+        messageDiv.appendChild(messageContent);
+        chatMessages.appendChild(messageDiv);
+        
+        scrollToBottom();
+    }
+    
+    // Function to show typing indicator
+    function showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'typing-indicator';
+        typingDiv.id = 'typing-indicator';
+        
+        for (let i = 0; i < 3; i++) {
+            const dot = document.createElement('span');
+            typingDiv.appendChild(dot);
+        }
+        
+        chatMessages.appendChild(typingDiv);
+        scrollToBottom();
+    }
+    
+    // Function to remove typing indicator
+    function removeTypingIndicator() {
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
+    }
+    
+    // Function to scroll chat to bottom
+    function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Function to generate a session ID
+    function generateSessionId() {
+        return 'session_' + Math.random().toString(36).substring(2, 15);
+    }
+    
+    // Function to update conversation context based on current page
+    function updateConversationContext() {
+        // Get current page path
+        const path = window.location.pathname;
+        
+        // Basic context
+        conversationContext = {
+            page: path
+        };
+        
+        // Add page-specific context
+        if (path.includes('compliance-officer')) {
+            conversationContext.role = 'compliance_officer';
+            // Get selected application if any
+            const selectedApp = document.querySelector('.application.selected');
+            if (selectedApp) {
+                conversationContext.application_id = selectedApp.dataset.id;
+            }
+        } else if (path.includes('data-scientist')) {
+            conversationContext.role = 'data_scientist';
+            // Get model information if available
+            const modelInfo = document.querySelector('.model-info');
+            if (modelInfo) {
+                conversationContext.model_id = modelInfo.dataset.id;
+            }
+        } else if (path.includes('executive')) {
+            conversationContext.role = 'executive';
+        }
+        
+        // Add any decision context if available
+        const decisionElement = document.querySelector('[data-decision-id]');
+        if (decisionElement) {
+            conversationContext.decision_id = decisionElement.dataset.decisionId;
+        }
+    }
+});
+</script>
