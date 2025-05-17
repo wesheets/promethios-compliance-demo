@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Data Scientist Dashboard - Promethios</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        .card { margin-bottom: 20px; }
+        .compliance-pass { color: green; }
+        .compliance-fail { color: red; }
+        .loading { opacity: 0.5; }
+        .dashboard-header {
+            background-color: #f8f9fa;
+            padding: 15px 0;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #6610f2;
+        }
+        .factor-score {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .score-high {
+            color: #198754;
+        }
+        .score-medium {
+            color: #fd7e14;
+        }
+        .score-low {
+            color: #dc3545;
+        }
+        .chart-container {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        .model-card {
+            border-left: 4px solid #6610f2;
+        }
+        .data-quality-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .quality-high {
+            background-color: #198754;
+        }
+        .quality-medium {
+            background-color: #fd7e14;
+        }
+        .quality-low {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Promethios Compliance Dashboard</h2>
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" id="roleDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-graph-up"></i> Data Scientist
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="roleDropdown">
+                        <li><a class="dropdown-item" href="/compliance-officer">Compliance Officer</a></li>
+                        <li><a class="dropdown-item active" href="/data-scientist">Data Scientist</a></li>
+                        <li><a class="dropdown-item" href="/executive">Executive</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/">Standard View</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Navigation</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                            <button class="nav-link active" id="v-pills-models-tab" data-bs-toggle="pill" data-bs-target="#v-pills-models" type="button" role="tab" aria-controls="v-pills-models" aria-selected="true">
+                                <i class="bi bi-cpu"></i> Models
+                            </button>
+                            <button class="nav-link" id="v-pills-data-tab" data-bs-toggle="pill" data-bs-target="#v-pills-data" type="button" role="tab" aria-controls="v-pills-data" aria-selected="false">
+                                <i class="bi bi-database"></i> Data Quality
+                            </button>
+                            <button class="nav-link" id="v-pills-metrics-tab" data-bs-toggle="pill" data-bs-target="#v-pills-metrics" type="button" role="tab" aria-controls="v-pills-metrics" aria-selected="false">
+                                <i class="bi bi-bar-chart"></i> Metrics
+                            </button>
+                            <button class="nav-link" id="v-pills-explainability-tab" data-bs-toggle="pill" data-bs-target="#v-pills-explainability" type="button" role="tab" aria-controls="v-pills-explainability" aria-selected="false">
+                                <i class="bi bi-chat-quote"></i> Explainability
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Regulatory Frameworks</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="frameworkRadio" id="frameworkEU" value="EU_AI_ACT" checked>
+                            <label class="form-check-label" for="frameworkEU">
+                                EU AI Act
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="frameworkRadio" id="frameworkFINRA" value="FINRA">
+                            <label class="form-check-label" for="frameworkFINRA">
+                                FINRA
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="frameworkRadio" id="frameworkInternal" value="internal">
+                            <label class="form-check-label" for="frameworkInternal">
+                                Internal
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-9">
+                <div class="tab-content" id="v-pills-tabContent">
+                    <!-- Models Tab -->
+                    <div class="tab-pane fade show active" id="v-pills-models" role="tabpanel" aria-labelledby="v-pills-models-tab">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5>Model Performance</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary" id="refreshModels">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="chart-container">
+                                            <canvas id="modelAccuracyChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="chart-container">
+                                            <canvas id="modelConfidenceChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <h6 class="mt-3">Model Evaluation</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Model</th>
+                                                <th>Accuracy</th>
+                                                <th>Precision</th>
+                                                <th>Recall</th>
+                                                <th>F1 Score</th>
+                                                <th>Compliance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Credit Risk Model v1.2</td>
+                                                <td>87.5%</td>
+                                                <td>82.3%</td>
+                                                <td>85.1%</td>
+                                                <td>83.7%</td>
+                                                <td><span class="badge bg-success">Compliant</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Fraud Detection v2.0</td>
+                                                <td>92.1%</td>
+                                                <td>89.7%</td>
+                                                <td>90.2%</td>
+                                                <td>90.0%</td>
+                                                <td><span class="badge bg-success">Compliant</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Loan Approval v1.5</td>
+                                                <td>78.3%</td>
+                                                <td>75.6%</td>
+                                                <td>72.9%</td>
+                                                <td>74.2%</td>
+                                                <td><span class="badge bg-warning text-dark">Review Needed</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5>Model Compliance Analysis</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="model-compliance-details">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card model-card">
+                                                <div class="card-body">
+                                                    <h6>Fairness Analysis</h6>
+                                                    <div class="chart-container" style="height: 200px;">
+                                                        <canvas id="fairnessChart"></canvas>
+                                                    </div>
+                                                    <p class="small text-muted mt-2">Analysis of model fairness across different demographic groups.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card model-card">
+                                                <div class="card-body">
+                                                    <h6>Robustness Testing</h6>
+                                                    <div class="chart-container" style="height: 200px;">
+                                                        <canvas id="robustnessChart"></canvas>
+                                                    </div>
+                                                    <p class="small text-muted mt-2">Model performance under various stress test scenarios.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Quality Tab -->
+                    <div class="tab-pane fade" id="v-pills-data" role="tabpanel" aria-labelledby="v-pills-data-tab">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5>Data Quality Metrics</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary" id="refreshDataQuality">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="chart-container">
+                                            <canvas id="dataQualityChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="chart-container">
+                                            <canvas id="dataCompletenessChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <h6 class="mt-3">Field-Level Quality</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Field</th>
+                                                <th>Completeness</th>
+                                                <th>Consistency</th>
+                                                <th>Accuracy</th>
+                                                <th>Overall</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Loan Amount</td>
+                                                <td>99.8%</td>
+                                                <td>98.5%</td>
+                                                <td>99.2%</td>
+                                                <td><span class="data-quality-indicator quality-high"></span> High</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Credit Score</td>
+                                                <td>97.3%</td>
+                                                <td>95.1%</td>
+                                                <td>96.8%</td>
+                                                <td><span class="data-quality-indicator quality-high"></span> High</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Employment History</td>
+                                                <td>85.2%</td>
+                                                <td>82.7%</td>
+                                                <td>80.5%</td>
+                                                <td><span class="data-quality-indicator quality-medium"></span> Medium</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Income Verification</td>
+                                                <td>78.6%</td>
+                                                <td>75.3%</td>
+                                                <td>72.9%</td>
+                                                <td><span class="data-quality-indicator quality-medium"></span> Medium</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Address History</td>
+                                                <td>65.4%</td>
+                                                <td>62.8%</td>
+                                                <td>60.1%</td>
+                                                <td><span class="data-quality-indicator quality-low"></span> Low</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5>Data Compliance Issues</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-warning">
+                                    <h6><i class="bi bi-exclamation-triangle"></i> Data Quality Alert</h6>
+                                    <p>Address History field has low quality scores that may impact compliance with EU AI Act requirements for data quality.</p>
+                                    <p><strong>Recommendation:</strong> Implement enhanced validation for address data and increase verification rate.</p>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <h6><i class="bi bi-info-circle"></i> Data Drift Detected</h6>
+                                    <p>Minor data drift detected in Income Verification field compared to baseline. This may affect model performance over time.</p>
+                                    <p><strong>Recommendation:</strong> Monitor closely and consider model retraining if drift increases.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Tab -->
+                    <div class="tab-pane fade" id="v-pills-metrics" role="tabpanel" aria-labelledby="v-pills-metrics-tab">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5>Compliance Metrics</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary" id="refreshMetrics">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="chart-container">
+                                            <canvas id="complianceScoreChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="chart-container">
+                                            <canvas id="complianceTrendChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <h6 class="mt-3">Trust Factor Analysis</h6>
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <div class="card h-100">
+                                            <div class="card-body text-center">
+                                                <h6>Data Quality</h6>
+                                                <div class="factor-score score-high">87.5</div>
+                                                <p class="small text-muted">High quality with minor issues in address verification</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <div class="card h-100">
+                                            <div class="card-body text-center">
+                                                <h6>Model Confidence</h6>
+                                                <div class="factor-score score-high">92.3</div>
+                                                <p class="small text-muted">Strong model performance with high confidence intervals</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <div class="card h-100">
+                                            <div class="card-body text-center">
+                                                <h6>Regulatory Alignment</h6>
+                                                <div class="factor-score score-medium">78.6</div>
+                                                <p class="small text-muted">Good alignment with some documentation gaps</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <div class="card h-100">
+                                            <div class="card-body text-center">
+                                                <h6>Ethical Considerations</h6>
+                                                <div class="factor-score score-high">85.2</div>
+                                                <p class="small text-muted">Strong ethical framework with minor fairness concerns</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5>Regulatory Impact Analysis</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Metric</th>
+                                                <th>EU AI Act</th>
+                                                <th>FINRA</th>
+                                                <th>Internal</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Overall Compliance</td>
+                                                <td><span class="badge bg-success">85.4%</span></td>
+                                                <td><span class="badge bg-success">88.7%</span></td>
+                                                <td><span class="badge bg-success">92.1%</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Documentation Coverage</td>
+                                                <td><span class="badge bg-warning text-dark">78.2%</span></td>
+                                                <td><span class="badge bg-success">85.6%</span></td>
+                                                <td><span class="badge bg-success">90.3%</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Fairness Metrics</td>
+                                                <td><span class="badge bg-success">87.9%</span></td>
+                                                <td><span class="badge bg-success">86.4%</span></td>
+                                                <td><span class="badge bg-success">89.7%</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Explainability</td>
+                                                <td><span class="badge bg-warning text-dark">76.5%</span></td>
+                                                <td><span class="badge bg-success">82.3%</span></td>
+                                                <td><span class="badge bg-success">85.1%</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Explainability Tab -->
+                    <div class="tab-pane fade" id="v-pills-explainability" role="tabpanel" aria-labelledby="v-pills-explainability-tab">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Model Explainability</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-4">
+                                    <div class="col-md-12">
+                                        <div class="chart-container">
+                                            <canvas id="featureImportanceChart"></canvas>
+                                        </div>
+                                        <p class="text-center text-muted small">Feature importance for the current model version</p>
+                                    </div>
+                                </div>
+                                
+                                <h6>SHAP Analysis</h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <img src="https://raw.githubusercontent.com/slundberg/shap/master/docs/artwork/shap_header.png" class="img-fluid" alt="SHAP Analysis">
+                                                <p class="text-center text-muted small">SHAP values showing the impact of each feature on model output</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <h6>Decision Explanation</h6>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="applicationSelect" class="form-label">Select Application</label>
+                                            <select class="form-select" id="applicationSelect">
+                                                <option selected>Choose an application...</option>
+                                                <option value="LC_1001">Application LC_1001</option>
+                                                <option value="LC_1002">Application LC_1002</option>
+                                                <option value="LC_1003">Application LC_1003</option>
+                                                <option value="LC_1004">Application LC_1004</option>
+                                                <option value="LC_1005">Application LC_1005</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div id="explanationContainer">
+                                            <div class="alert alert-info">
+                                                <i class="bi bi-info-circle"></i> Select an application to view its decision explanation
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5>Conversational Explainability</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="explainabilityQuery" class="form-label">Ask a question about model decisions</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="explainabilityQuery" placeholder="E.g., Why was application LC_1001 rejected?">
+                                        <button class="btn btn-primary" type="button" id="queryButton">
+                                            <i class="bi bi-search"></i> Ask
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div id="conversationContainer">
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <div class="d-flex">
+                                                <div class="flex-shrink-0">
+                                                    <i class="bi bi-person-circle fs-4"></i>
+                                                </div>
+                                                <div class="flex-grow-1 ms-3">
+                                                    <p class="mb-0"><strong>You:</strong> Why was application LC_1001 rejected?</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <div class="d-flex">
+                                                <div class="flex-shrink-0">
+                                                    <i class="bi bi-robot fs-4"></i>
+                                                </div>
+                                                <div class="flex-grow-1 ms-3">
+                                                    <p class="mb-0"><strong>Promethios:</strong> Application LC_1001 was flagged as non-compliant with the EU AI Act primarily due to data quality concerns. The application had incomplete employment history verification (75% complete) which falls below the required threshold of 85% for high-risk lending decisions. Additionally, the debt-to-income ratio of 42% exceeded our internal threshold of 35%, raising concerns about repayment capacity.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize charts
+            initializeCharts();
+            
+            // Set up event listeners
+            document.getElementById('refreshModels').addEventListener('click', refreshModels);
+            document.getElementById('refreshDataQuality').addEventListener('click', refreshDataQuality);
+            document.getElementById('refreshMetrics').addEventListener('click', refreshMetrics);
+            
+            // Application select for explanations
+            document.getElementById('applicationSelect').addEventListener('change', function() {
+                const applicationId = this.value;
+                if (applicationId !== 'Choose an application...') {
+                    loadExplanation(applicationId);
+                }
+            });
+            
+            // Query button for conversational explainability
+            document.getElementById('queryButton').addEventListener('click', function() {
+                const query = document.getElementById('explainabilityQuery').value;
+                if (query.trim() !== '') {
+                    addConversationMessage(query);
+                }
+            });
+        });
+        
+        // Initialize all charts
+        function initializeCharts() {
+            // Model Accuracy Chart
+            const modelAccuracyCtx = document.getElementById('modelAccuracyChart').getContext('2d');
+            new Chart(modelAccuracyCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Model Accuracy',
+                        data: [82.5, 83.1, 85.7, 86.2, 87.5, 87.8],
+                        borderColor: '#6610f2',
+                        backgroundColor: 'rgba(102, 16, 242, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Model Accuracy Trend'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 75,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Model Confidence Chart
+            const modelConfidenceCtx = document.getElementById('modelConfidenceChart').getContext('2d');
+            new Chart(modelConfidenceCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Credit Risk', 'Fraud Detection', 'Loan Approval'],
+                    datasets: [{
+                        label: 'Confidence Score',
+                        data: [87.5, 92.1, 78.3],
+                        backgroundColor: [
+                            'rgba(102, 16, 242, 0.7)',
+                            'rgba(32, 201, 151, 0.7)',
+                            'rgba(255, 193, 7, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgb(102, 16, 242)',
+                            'rgb(32, 201, 151)',
+                            'rgb(255, 193, 7)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Model Confidence Scores'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Fairness Chart
+            const fairnessCtx = document.getElementById('fairnessChart').getContext('2d');
+            new Chart(fairnessCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Age Group', 'Gender', 'Income Level', 'Location', 'Ethnicity'],
+                    datasets: [{
+                        label: 'Fairness Score',
+                        data: [85, 92, 78, 88, 90],
+                        backgroundColor: 'rgba(102, 16, 242, 0.2)',
+                        borderColor: 'rgb(102, 16, 242)',
+                        pointBackgroundColor: 'rgb(102, 16, 242)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(102, 16, 242)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            min: 50,
+                            max: 100,
+                            ticks: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Robustness Chart
+            const robustnessCtx = document.getElementById('robustnessChart').getContext('2d');
+            new Chart(robustnessCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Baseline', 'Missing Data', 'Outliers', 'Data Drift', 'Adversarial'],
+                    datasets: [{
+                        label: 'Performance',
+                        data: [87.5, 82.3, 80.1, 78.5, 75.2],
+                        backgroundColor: 'rgba(102, 16, 242, 0.7)',
+                        borderColor: 'rgb(102, 16, 242)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: 50,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Data Quality Chart
+            const dataQualityCtx = document.getElementById('dataQualityChart').getContext('2d');
+            new Chart(dataQualityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['High Quality', 'Medium Quality', 'Low Quality'],
+                    datasets: [{
+                        data: [65, 25, 10],
+                        backgroundColor: [
+                            'rgba(32, 201, 151, 0.7)',
+                            'rgba(255, 193, 7, 0.7)',
+                            'rgba(220, 53, 69, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgb(32, 201, 151)',
+                            'rgb(255, 193, 7)',
+                            'rgb(220, 53, 69)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Overall Data Quality'
+                        }
+                    }
+                }
+            });
+            
+            // Data Completeness Chart
+            const dataCompletenessCtx = document.getElementById('dataCompletenessChart').getContext('2d');
+            new Chart(dataCompletenessCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Loan Amount', 'Credit Score', 'Employment', 'Income', 'Address'],
+                    datasets: [{
+                        label: 'Completeness',
+                        data: [99.8, 97.3, 85.2, 78.6, 65.4],
+                        backgroundColor: 'rgba(102, 16, 242, 0.7)',
+                        borderColor: 'rgb(102, 16, 242)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Data Completeness by Field'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Compliance Score Chart
+            const complianceScoreCtx = document.getElementById('complianceScoreChart').getContext('2d');
+            new Chart(complianceScoreCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Data Quality', 'Model Confidence', 'Regulatory Alignment', 'Ethical Considerations', 'Documentation'],
+                    datasets: [{
+                        label: 'EU AI Act',
+                        data: [87.5, 92.3, 78.6, 85.2, 76.8],
+                        backgroundColor: 'rgba(102, 16, 242, 0.2)',
+                        borderColor: 'rgb(102, 16, 242)',
+                        pointBackgroundColor: 'rgb(102, 16, 242)',
+                        pointBorderColor: '#fff'
+                    }, {
+                        label: 'FINRA',
+                        data: [85.3, 90.1, 88.7, 82.5, 85.6],
+                        backgroundColor: 'rgba(32, 201, 151, 0.2)',
+                        borderColor: 'rgb(32, 201, 151)',
+                        pointBackgroundColor: 'rgb(32, 201, 151)',
+                        pointBorderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            min: 50,
+                            max: 100,
+                            ticks: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Compliance Trend Chart
+            const complianceTrendCtx = document.getElementById('complianceTrendChart').getContext('2d');
+            new Chart(complianceTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'EU AI Act',
+                        data: [75.2, 78.5, 80.1, 82.3, 84.7, 85.4],
+                        borderColor: 'rgb(102, 16, 242)',
+                        backgroundColor: 'rgba(102, 16, 242, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }, {
+                        label: 'FINRA',
+                        data: [80.5, 82.1, 84.3, 85.6, 87.2, 88.7],
+                        borderColor: 'rgb(32, 201, 151)',
+                        backgroundColor: 'rgba(32, 201, 151, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Compliance Score Trend'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 70,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Feature Importance Chart
+            const featureImportanceCtx = document.getElementById('featureImportanceChart').getContext('2d');
+            new Chart(featureImportanceCtx, {
+                type: 'horizontalBar',
+                type: 'bar',
+                data: {
+                    labels: ['Credit Score', 'Debt-to-Income', 'Loan Amount', 'Employment Length', 'Income', 'Home Ownership', 'Loan Purpose', 'Credit History Length', 'Delinquencies', 'Inquiries'],
+                    datasets: [{
+                        label: 'Feature Importance',
+                        data: [0.32, 0.28, 0.15, 0.08, 0.06, 0.04, 0.03, 0.02, 0.01, 0.01],
+                        backgroundColor: [
+                            'rgba(102, 16, 242, 0.8)',
+                            'rgba(102, 16, 242, 0.75)',
+                            'rgba(102, 16, 242, 0.7)',
+                            'rgba(102, 16, 242, 0.65)',
+                            'rgba(102, 16, 242, 0.6)',
+                            'rgba(102, 16, 242, 0.55)',
+                            'rgba(102, 16, 242, 0.5)',
+                            'rgba(102, 16, 242, 0.45)',
+                            'rgba(102, 16, 242, 0.4)',
+                            'rgba(102, 16, 242, 0.35)'
+                        ],
+                        borderColor: 'rgb(102, 16, 242)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Feature Importance'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            min: 0,
+                            max: 0.4
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Refresh models data
+        function refreshModels() {
+            // In a real implementation, this would fetch updated data from the API
+            console.log('Refreshing model data...');
+            // For demo purposes, we'll just show an alert
+            alert('Model data refreshed');
+        }
+        
+        // Refresh data quality metrics
+        function refreshDataQuality() {
+            console.log('Refreshing data quality metrics...');
+            alert('Data quality metrics refreshed');
+        }
+        
+        // Refresh compliance metrics
+        function refreshMetrics() {
+            console.log('Refreshing compliance metrics...');
+            alert('Compliance metrics refreshed');
+        }
+        
+        // Load explanation for a specific application
+        function loadExplanation(applicationId) {
+            const explanationContainer = document.getElementById('explanationContainer');
+            
+            explanationContainer.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading explanation...</p>
+                </div>
+            `;
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                // Mock explanations for different applications
+                const explanations = {
+                    'LC_1001': {
+                        decision: 'Rejected',
+                        reason: 'High debt-to-income ratio (42%) and incomplete employment verification',
+                        factors: [
+                            { name: 'Debt-to-Income Ratio', value: '42%', impact: 'negative', description: 'Exceeds threshold of 35%' },
+                            { name: 'Employment Verification', value: '75%', impact: 'negative', description: 'Below required 85% completeness' },
+                            { name: 'Credit Score', value: '680', impact: 'neutral', description: 'Within acceptable range' },
+                            { name: 'Loan Amount', value: '$10,000', impact: 'positive', description: 'Within low-risk threshold' }
+                        ]
+                    },
+                    'LC_1002': {
+                        decision: 'Approved',
+                        reason: 'Strong credit profile with low debt-to-income ratio',
+                        factors: [
+                            { name: 'Debt-to-Income Ratio', value: '28%', impact: 'positive', description: 'Well below threshold of 35%' },
+                            { name: 'Employment Verification', value: '95%', impact: 'positive', description: 'Exceeds required 85% completeness' },
+                            { name: 'Credit Score', value: '720', impact: 'positive', description: 'Above average score' },
+                            { name: 'Loan Amount', value: '$20,000', impact: 'neutral', description: 'Within moderate-risk threshold' }
+                        ]
+                    },
+                    'LC_1003': {
+                        decision: 'Approved',
+                        reason: 'Excellent credit history and stable employment',
+                        factors: [
+                            { name: 'Debt-to-Income Ratio', value: '25%', impact: 'positive', description: 'Well below threshold of 35%' },
+                            { name: 'Employment Verification', value: '100%', impact: 'positive', description: 'Complete verification' },
+                            { name: 'Credit Score', value: '760', impact: 'positive', description: 'Excellent score' },
+                            { name: 'Loan Amount', value: '$15,000', impact: 'positive', description: 'Within low-risk threshold' }
+                        ]
+                    },
+                    'LC_1004': {
+                        decision: 'Rejected',
+                        reason: 'Poor credit history and high loan amount',
+                        factors: [
+                            { name: 'Debt-to-Income Ratio', value: '38%', impact: 'negative', description: 'Exceeds threshold of 35%' },
+                            { name: 'Employment Verification', value: '90%', impact: 'positive', description: 'Exceeds required 85% completeness' },
+                            { name: 'Credit Score', value: '620', impact: 'negative', description: 'Below acceptable threshold' },
+                            { name: 'Loan Amount', value: '$30,000', impact: 'negative', description: 'High risk for credit profile' }
+                        ]
+                    },
+                    'LC_1005': {
+                        decision: 'Approved',
+                        reason: 'Low loan amount and strong income verification',
+                        factors: [
+                            { name: 'Debt-to-Income Ratio', value: '30%', impact: 'positive', description: 'Below threshold of 35%' },
+                            { name: 'Employment Verification', value: '98%', impact: 'positive', description: 'Exceeds required 85% completeness' },
+                            { name: 'Credit Score', value: '690', impact: 'neutral', description: 'Within acceptable range' },
+                            { name: 'Loan Amount', value: '$8,000', impact: 'positive', description: 'Low risk amount' }
+                        ]
+                    }
+                };
+                
+                const explanation = explanations[applicationId];
+                
+                if (!explanation) {
+                    explanationContainer.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> No explanation available for application ${applicationId}
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const decisionClass = explanation.decision === 'Approved' ? 'text-success' : 'text-danger';
+                
+                explanationContainer.innerHTML = `
+                    <div class="card">
+                        <div class="card-header">
+                            <h6>Application ${applicationId} - <span class="${decisionClass}">${explanation.decision}</span></h6>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Primary Reason:</strong> ${explanation.reason}</p>
+                            
+                            <h6 class="mt-3">Contributing Factors</h6>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Factor</th>
+                                            <th>Value</th>
+                                            <th>Impact</th>
+                                            <th>Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${explanation.factors.map(factor => `
+                                            <tr>
+                                                <td>${factor.name}</td>
+                                                <td>${factor.value}</td>
+                                                <td>
+                                                    ${factor.impact === 'positive' ? 
+                                                        '<span class="text-success"><i class="bi bi-arrow-up-circle"></i> Positive</span>' : 
+                                                        factor.impact === 'negative' ? 
+                                                            '<span class="text-danger"><i class="bi bi-arrow-down-circle"></i> Negative</span>' : 
+                                                            '<span class="text-secondary"><i class="bi bi-dash-circle"></i> Neutral</span>'
+                                                    }
+                                                </td>
+                                                <td>${factor.description}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }, 1000);
+        }
+        
+        // Add message to conversation
+        function addConversationMessage(query) {
+            const container = document.getElementById('conversationContainer');
+            
+            // Add user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'card mb-3';
+            userMessage.innerHTML = `
+                <div class="card-body">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-person-circle fs-4"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="mb-0"><strong>You:</strong> ${query}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(userMessage);
+            
+            // Add loading message
+            const loadingMessage = document.createElement('div');
+            loadingMessage.className = 'card mb-3';
+            loadingMessage.innerHTML = `
+                <div class="card-body">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-robot fs-4"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mb-0">Generating response...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(loadingMessage);
+            
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                // Remove loading message
+                container.removeChild(loadingMessage);
+                
+                // Add response based on query
+                const response = getAIResponse(query);
+                
+                const aiMessage = document.createElement('div');
+                aiMessage.className = 'card mb-3';
+                aiMessage.innerHTML = `
+                    <div class="card-body">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-robot fs-4"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="mb-0"><strong>Promethios:</strong> ${response}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(aiMessage);
+                
+                // Scroll to bottom
+                container.scrollTop = container.scrollHeight;
+                
+                // Clear input
+                document.getElementById('explainabilityQuery').value = '';
+            }, 1500);
+        }
+        
+        // Get AI response based on query
+        function getAIResponse(query) {
+            // Simple keyword-based responses for demo
+            const lowerQuery = query.toLowerCase();
+            
+            if (lowerQuery.includes('rejected') && lowerQuery.includes('lc_1001')) {
+                return "Application LC_1001 was rejected primarily due to two factors: First, the debt-to-income ratio was 42%, which exceeds our threshold of 35% for this loan category. Second, the employment verification was only 75% complete, below our required 85% completeness for high-risk lending decisions. These issues raised concerns about repayment capacity and data quality, both of which are critical for EU AI Act compliance.";
+            } else if (lowerQuery.includes('approved') && lowerQuery.includes('lc_1002')) {
+                return "Application LC_1002 was approved because it met all compliance requirements. The applicant had a strong credit profile with a debt-to-income ratio of only 28% (well below our 35% threshold), employment verification was 95% complete (exceeding our 85% requirement), and the credit score of 720 is above average for this loan category. All data quality metrics were high, ensuring compliance with both EU AI Act and FINRA requirements.";
+            } else if (lowerQuery.includes('factor') && lowerQuery.includes('important')) {
+                return "For loan compliance decisions, the most important factors in our model are credit score (32% importance) and debt-to-income ratio (28% importance). These factors have the strongest correlation with loan performance and regulatory compliance. Other significant factors include loan amount (15%), employment length (8%), and verified income (6%). The importance weights are regularly audited to ensure they don't introduce bias or unfairness in the decision process.";
+            } else if (lowerQuery.includes('bias') || lowerQuery.includes('fair')) {
+                return "Our fairness analysis shows that the model performs consistently across different demographic groups with fairness scores ranging from 78% to 92%. We continuously monitor for potential bias using multiple fairness metrics including equal opportunity, demographic parity, and individual fairness. The most recent audit identified a slight disparity in outcomes for applicants with limited credit history, which we're addressing through model adjustments and alternative data sources to ensure compliance with EU AI Act fairness requirements.";
+            } else if (lowerQuery.includes('data quality') || lowerQuery.includes('data issue')) {
+                return "The primary data quality issue affecting compliance is incomplete address history verification, which currently has only 65.4% completeness. This falls below our internal threshold of 80% and the EU AI Act recommended minimum of 75% for high-risk AI systems. We're implementing enhanced validation for address data and increasing verification rates through additional data sources. Other data fields meet or exceed quality requirements, with loan amount (99.8%) and credit score (97.3%) having the highest quality scores.";
+            } else {
+                return "I don't have specific information about that query. For compliance-related questions, I can provide insights on model decisions, fairness metrics, data quality issues, or specific application outcomes. Please provide more details or ask about a specific application ID, compliance factor, or regulatory requirement.";
+            }
+        }
+    </script>
+</body>
+</html>

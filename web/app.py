@@ -1,104 +1,179 @@
+from flask import Flask, render_template, jsonify, request, redirect, url_for, send_file
 import os
 import requests
 import json
-from flask import Flask, render_template, request, jsonify
-from dotenv import load_dotenv
+from datetime import datetime
+import io
+import base64
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 # Load environment variables
-load_dotenv()
+API_URL = os.environ.get('API_URL', 'http://localhost:8000')
 
-# Configuration
-API_URL = os.getenv("API_URL", "http://localhost:8002")
-
-# Create Flask app
-app = Flask(__name__)
-
-# Routes
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/api/applications', methods=['GET'])
+@app.route('/compliance-officer')
+def compliance_officer_dashboard():
+    return render_template('compliance_officer.html')
+
+@app.route('/data-scientist')
+def data_scientist_dashboard():
+    return render_template('data_scientist.html')
+
+@app.route('/executive')
+def executive_dashboard():
+    return render_template('executive.html')
+
+@app.route('/api/applications')
 def get_applications():
-    count = request.args.get('count', 5, type=int)
-    
-    # Forward request to API
-    response = requests.get(f"{API_URL}/api/applications?count={count}")
-    
-    if response.status_code == 200:
-        applications = response.json()
-        # Ensure we're returning an array
-        if not isinstance(applications, list):
-            # If it's not a list, check if it might be wrapped in an object
-            if isinstance(applications, dict) and 'applications' in applications:
-                applications = applications['applications']
-            else:
-                # If we can't extract an array, return an empty array
-                applications = []
-        return jsonify(applications)
-    else:
-        return jsonify({"error": "Failed to fetch applications"}), response.status_code
+    try:
+        response = requests.get(f"{API_URL}/api/applications")
+        if response.status_code == 200:
+            applications = response.json()
+            # Ensure applications is always an array
+            if not isinstance(applications, list):
+                if isinstance(applications, dict) and 'applications' in applications:
+                    applications = applications['applications']
+                else:
+                    applications = []
+            return jsonify(applications)
+        else:
+            return jsonify({"error": f"Error fetching applications: {response.status_code}"}), response.status_code
+    except Exception as e:
+        return jsonify({"error": f"Error loading applications: {str(e)}"}), 500
 
 @app.route('/api/process', methods=['POST'])
 def process_application():
-    data = request.json
-    
-    # Forward request to API
-    response = requests.post(f"{API_URL}/api/process", json=data)
-    
-    if response.status_code == 200:
-        result = response.json()
-        return jsonify(result)
-    else:
-        return jsonify({"error": "Failed to process application"}), response.status_code
-
-@app.route('/api/decisions', methods=['GET'])
-def get_decisions():
-    # Forward request to API
-    response = requests.get(f"{API_URL}/api/decisions")
-    
-    if response.status_code == 200:
-        return jsonify(response.json())
-    else:
-        return jsonify({"error": "Failed to fetch decisions"}), response.status_code
-
-@app.route('/api/decision/<decision_id>', methods=['GET'])
-def get_decision(decision_id):
-    # Forward request to API
-    response = requests.get(f"{API_URL}/api/decision/{decision_id}")
-    
-    if response.status_code == 200:
-        return jsonify(response.json())
-    else:
-        return jsonify({"error": "Decision not found"}), response.status_code
-
-@app.route('/api/verify/<decision_id>', methods=['GET'])
-def verify_decision(decision_id):
-    # Forward request to API
-    response = requests.get(f"{API_URL}/api/verify/{decision_id}")
-    
-    if response.status_code == 200:
-        return jsonify(response.json())
-    else:
-        return jsonify({"error": "Failed to verify decision"}), response.status_code
-
-@app.route('/health')
-def health():
-    # Check API health
     try:
-        response = requests.get(f"{API_URL}/")
-        api_status = "connected" if response.status_code == 200 else "error"
-    except:
-        api_status = "unreachable"
-    
-    return jsonify({
-        "status": "healthy",
-        "api_status": api_status,
-        "api_url": API_URL
-    })
+        data = request.json
+        application_id = data.get('application_id')
+        framework = data.get('framework', 'EU_AI_ACT')
+        
+        response = requests.post(
+            f"{API_URL}/api/process",
+            json={"application_id": application_id, "framework": framework}
+        )
+        
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({"error": f"Error processing application: {response.status_code}"}), response.status_code
+    except Exception as e:
+        return jsonify({"error": f"Error processing application: {str(e)}"}), 500
+
+@app.route('/api/decisions')
+def get_decisions():
+    try:
+        response = requests.get(f"{API_URL}/api/decisions")
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({"error": f"Error fetching decisions: {response.status_code}"}), response.status_code
+    except Exception as e:
+        return jsonify({"error": f"Error loading decisions: {str(e)}"}), 500
+
+@app.route('/api/decision/<decision_id>')
+def get_decision(decision_id):
+    try:
+        response = requests.get(f"{API_URL}/api/decision/{decision_id}")
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({"error": f"Error fetching decision: {response.status_code}"}), response.status_code
+    except Exception as e:
+        return jsonify({"error": f"Error loading decision: {str(e)}"}), 500
+
+@app.route('/api/verify/<decision_id>')
+def verify_decision(decision_id):
+    try:
+        response = requests.get(f"{API_URL}/api/verify/{decision_id}")
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({"error": f"Error verifying decision: {response.status_code}"}), response.status_code
+    except Exception as e:
+        return jsonify({"error": f"Error verifying decision: {str(e)}"}), 500
+
+@app.route('/api/explain', methods=['POST'])
+def explain_decision():
+    try:
+        data = request.json
+        decision_id = data.get('decision_id')
+        query = data.get('query', '')
+        
+        response = requests.post(
+            f"{API_URL}/api/explain",
+            json={"decision_id": decision_id, "query": query}
+        )
+        
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({"error": f"Error getting explanation: {response.status_code}"}), response.status_code
+    except Exception as e:
+        return jsonify({"error": f"Error getting explanation: {str(e)}"}), 500
+
+@app.route('/api/trust-factors/<application_id>')
+def get_trust_factors(application_id):
+    try:
+        response = requests.get(f"{API_URL}/api/trust-factors/{application_id}")
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({"error": f"Error fetching trust factors: {response.status_code}"}), response.status_code
+    except Exception as e:
+        return jsonify({"error": f"Error loading trust factors: {str(e)}"}), 500
+
+@app.route('/api/recommendations/<application_id>')
+def get_recommendations(application_id):
+    try:
+        response = requests.get(f"{API_URL}/api/recommendations/{application_id}")
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({"error": f"Error fetching recommendations: {response.status_code}"}), response.status_code
+    except Exception as e:
+        return jsonify({"error": f"Error loading recommendations: {str(e)}"}), 500
+
+@app.route('/api/generate-report/<decision_id>')
+def generate_report(decision_id):
+    try:
+        response = requests.get(f"{API_URL}/api/generate-report/{decision_id}")
+        if response.status_code == 200:
+            report_data = response.json()
+            
+            # If the API returns PDF data as base64
+            if 'pdf_data' in report_data:
+                pdf_data = base64.b64decode(report_data['pdf_data'])
+                return send_file(
+                    io.BytesIO(pdf_data),
+                    mimetype='application/pdf',
+                    as_attachment=True,
+                    download_name=f"compliance_report_{decision_id}.pdf"
+                )
+            else:
+                return jsonify(report_data)
+        else:
+            return jsonify({"error": f"Error generating report: {response.status_code}"}), response.status_code
+    except Exception as e:
+        return jsonify({"error": f"Error generating report: {str(e)}"}), 500
+
+@app.route('/api/timeline/<application_id>')
+def get_timeline(application_id):
+    try:
+        response = requests.get(f"{API_URL}/api/timeline/{application_id}")
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({"error": f"Error fetching timeline: {response.status_code}"}), response.status_code
+    except Exception as e:
+        return jsonify({"error": f"Error loading timeline: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    # Create templates directory if it doesn't exist
-    os.makedirs('templates', exist_ok=True)
-    
-    app.run(debug=True, host='0.0.0.0', port=int(os.getenv("PORT", 5002)))
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)

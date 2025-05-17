@@ -2,6 +2,7 @@ import requests
 import json
 import os
 from dotenv import load_dotenv
+from .trust_evaluation_framework import TrustEvaluationFramework
 
 # Load environment variables
 load_dotenv()
@@ -10,68 +11,76 @@ class ComplianceWrapper:
     def __init__(self, base_url=None):
         # Use environment variable or default
         self.base_url = base_url or os.getenv("API_URL", "http://localhost:8002")
+        # Initialize the trust evaluation framework
+        self.trust_framework = TrustEvaluationFramework()
         
-    def evaluate_compliance(self, loan_application, regulatory_framework="GDPR"):
+    def evaluate_compliance(self, loan_application, regulatory_framework="EU_AI_ACT"):
         """
         Evaluate compliance of a loan application against a regulatory framework.
         
         Args:
             loan_application: Dictionary containing loan application data
-            regulatory_framework: Regulatory framework to check against (e.g., "GDPR", "FCRA")
+            regulatory_framework: Regulatory framework to check against (e.g., "EU_AI_ACT", "FINRA")
             
         Returns:
             Dictionary with compliance results
         """
-        # For demo purposes, we'll use a simple trust score calculation
-        trust_score = self._calculate_trust_score(loan_application)
+        # Use the multi-factor trust evaluation framework
+        evaluation_results = self.trust_framework.evaluate(loan_application, regulatory_framework)
         
-        # Check against regulatory framework
-        return self._check_regulatory_compliance(trust_score, regulatory_framework)
+        # Extract key information for the response
+        overall_score = evaluation_results["overall_score"]
+        is_compliant = evaluation_results["compliant"]
+        
+        # Prepare the response
+        response = {
+            "compliant": is_compliant,
+            "framework": regulatory_framework,
+            "overall_score": overall_score,
+            "factors": {}
+        }
+        
+        # Add factor details
+        for factor_id, factor_data in evaluation_results["factors"].items():
+            response["factors"][factor_id] = {
+                "score": factor_data["score"],
+                "summary": factor_data["explanation"]["summary"]
+            }
+        
+        # Add details and remediation
+        if is_compliant:
+            response["details"] = f"Trust score {overall_score:.1f} meets {regulatory_framework} threshold"
+        else:
+            response["details"] = f"Trust score {overall_score:.1f} below {regulatory_framework} threshold"
+            
+            # Identify the lowest scoring factor for remediation
+            lowest_factor = min(
+                evaluation_results["factors"].items(),
+                key=lambda x: x[1]["score"]
+            )
+            factor_id, factor_data = lowest_factor
+            
+            response["remediation"] = f"Improve {factor_data['explanation']['factor']} score: {factor_data['explanation']['summary']}"
+        
+        return response
     
+    # Legacy methods kept for backward compatibility
     def _calculate_trust_score(self, loan_application):
-        """Calculate a trust score based on loan application data."""
-        # This is a simplified scoring model for demo purposes
-        score = 50  # Base score
-        
-        # Adjust based on loan amount (higher loans = higher risk)
-        loan_amount = loan_application.get("loan_amount", 0)
-        if loan_amount < 10000:
-            score += 15
-        elif loan_amount > 30000:
-            score -= 15
-        
-        # Adjust based on employment length (longer = more stable)
-        employment_length = loan_application.get("employment_length", 0)
-        if employment_length > 5:
-            score += 10
-        elif employment_length < 2:
-            score -= 10
-        
-        # Adjust based on debt-to-income ratio (lower = better)
-        dti = loan_application.get("dti", 0)
-        if dti < 15:
-            score += 15
-        elif dti > 30:
-            score -= 15
-        
-        # Adjust based on delinquencies (fewer = better)
-        delinq = loan_application.get("delinq_2yrs", 0)
-        if delinq == 0:
-            score += 10
-        elif delinq > 2:
-            score -= 20
-        
-        # Ensure score is between 0 and 100
-        return max(0, min(100, score))
+        """Legacy method for calculating a trust score based on loan application data."""
+        # Use the new framework but return just the overall score
+        evaluation_results = self.trust_framework.evaluate(loan_application)
+        return evaluation_results["overall_score"]
     
     def _check_regulatory_compliance(self, trust_score, regulatory_framework):
-        """Check if trust score meets regulatory framework requirements."""
+        """Legacy method to check if trust score meets regulatory framework requirements."""
         # Different frameworks have different thresholds
         thresholds = {
             "GDPR": 65,
             "FCRA": 60,
             "CCPA": 70,
-            "GLBA": 75
+            "GLBA": 75,
+            "EU_AI_ACT": 80,
+            "FINRA": 70
         }
         
         threshold = thresholds.get(regulatory_framework, 65)  # Default to GDPR threshold
@@ -88,4 +97,4 @@ class ComplianceWrapper:
                 "framework": regulatory_framework,
                 "details": f"Trust score {trust_score} below {regulatory_framework} threshold of {threshold}",
                 "remediation": "Escalate to human reviewer"
-            }
+            } }

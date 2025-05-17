@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Compliance Officer Dashboard - Promethios</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        .card { margin-bottom: 20px; }
+        .compliance-pass { color: green; }
+        .compliance-fail { color: red; }
+        .loading { opacity: 0.5; }
+        .dashboard-header {
+            background-color: #f8f9fa;
+            padding: 15px 0;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
+        }
+        .factor-score {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .score-high {
+            color: #198754;
+        }
+        .score-medium {
+            color: #fd7e14;
+        }
+        .score-low {
+            color: #dc3545;
+        }
+        .requirement-card {
+            border-left: 4px solid #0d6efd;
+        }
+        .requirement-card.non-compliant {
+            border-left: 4px solid #dc3545;
+        }
+        .timeline-item {
+            position: relative;
+            padding-left: 40px;
+            margin-bottom: 20px;
+        }
+        .timeline-item:before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #dee2e6;
+        }
+        .timeline-badge {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #0d6efd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .timeline-badge.warning {
+            background-color: #ffc107;
+        }
+        .timeline-badge.danger {
+            background-color: #dc3545;
+        }
+        .timeline-badge.success {
+            background-color: #198754;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Promethios Compliance Dashboard</h2>
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" id="roleDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-shield-check"></i> Compliance Officer
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="roleDropdown">
+                        <li><a class="dropdown-item active" href="/compliance-officer">Compliance Officer</a></li>
+                        <li><a class="dropdown-item" href="/data-scientist">Data Scientist</a></li>
+                        <li><a class="dropdown-item" href="/executive">Executive</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/">Standard View</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Navigation</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                            <button class="nav-link active" id="v-pills-applications-tab" data-bs-toggle="pill" data-bs-target="#v-pills-applications" type="button" role="tab" aria-controls="v-pills-applications" aria-selected="true">
+                                <i class="bi bi-file-earmark-text"></i> Applications
+                            </button>
+                            <button class="nav-link" id="v-pills-decisions-tab" data-bs-toggle="pill" data-bs-target="#v-pills-decisions" type="button" role="tab" aria-controls="v-pills-decisions" aria-selected="false">
+                                <i class="bi bi-check2-square"></i> Decisions
+                            </button>
+                            <button class="nav-link" id="v-pills-frameworks-tab" data-bs-toggle="pill" data-bs-target="#v-pills-frameworks" type="button" role="tab" aria-controls="v-pills-frameworks" aria-selected="false">
+                                <i class="bi bi-diagram-3"></i> Frameworks
+                            </button>
+                            <button class="nav-link" id="v-pills-reports-tab" data-bs-toggle="pill" data-bs-target="#v-pills-reports" type="button" role="tab" aria-controls="v-pills-reports" aria-selected="false">
+                                <i class="bi bi-file-earmark-pdf"></i> Reports
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Regulatory Frameworks</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="frameworkRadio" id="frameworkEU" value="EU_AI_ACT" checked>
+                            <label class="form-check-label" for="frameworkEU">
+                                EU AI Act
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="frameworkRadio" id="frameworkFINRA" value="FINRA">
+                            <label class="form-check-label" for="frameworkFINRA">
+                                FINRA
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="frameworkRadio" id="frameworkInternal" value="internal">
+                            <label class="form-check-label" for="frameworkInternal">
+                                Internal
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-9">
+                <div class="tab-content" id="v-pills-tabContent">
+                    <!-- Applications Tab -->
+                    <div class="tab-pane fade show active" id="v-pills-applications" role="tabpanel" aria-labelledby="v-pills-applications-tab">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5>Loan Applications</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary" id="refreshApplications">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="applications-list" class="applications-container">
+                                    <div class="text-center">
+                                        <div class="spinner-border" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p>Loading applications...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5>Compliance Evaluation</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="compliance-results">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle"></i> Select an application to evaluate compliance
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Decisions Tab -->
+                    <div class="tab-pane fade" id="v-pills-decisions" role="tabpanel" aria-labelledby="v-pills-decisions-tab">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5>Compliance Decisions</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary" id="refreshDecisions">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="decisions-list">
+                                    <div class="text-center">
+                                        <div class="spinner-border" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p>Loading decisions...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5>Decision Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="decision-details">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle"></i> Select a decision to view details
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Frameworks Tab -->
+                    <div class="tab-pane fade" id="v-pills-frameworks" role="tabpanel" aria-labelledby="v-pills-frameworks-tab">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Regulatory Framework Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="framework-details">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle"></i> Select a framework from the sidebar to view details
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5>Requirements Mapping</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="requirements-mapping">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle"></i> Select a framework to view requirements mapping
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reports Tab -->
+                    <div class="tab-pane fade" id="v-pills-reports" role="tabpanel" aria-labelledby="v-pills-reports-tab">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Compliance Reports</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="reports-list">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle"></i> No reports available yet. Process applications to generate reports.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Templates for dynamic content -->
+    <template id="application-card-template">
+        <div class="card mb-3 application-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="card-title">Application <span class="app-id"></span></h5>
+                        <p class="card-text mb-1">Amount: $<span class="app-amount"></span></p>
+                        <p class="card-text mb-1">Purpose: <span class="app-purpose"></span></p>
+                        <p class="card-text mb-1">Grade: <span class="app-grade"></span></p>
+                    </div>
+                    <button class="btn btn-primary process-btn">Evaluate</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="decision-row-template">
+        <tr>
+            <td class="decision-id"></td>
+            <td class="application-id"></td>
+            <td class="framework"></td>
+            <td class="status"></td>
+            <td class="timestamp"></td>
+            <td>
+                <button class="btn btn-sm btn-info view-btn">View</button>
+                <button class="btn btn-sm btn-secondary verify-btn">Verify</button>
+                <button class="btn btn-sm btn-primary report-btn">Report</button>
+            </td>
+        </tr>
+    </template>
+
+    <template id="compliance-result-template">
+        <div class="card">
+            <div class="card-header compliance-status">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="status-text"></span>
+                    <span class="badge rounded-pill"></span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Framework:</strong> <span class="framework"></span></p>
+                        <p><strong>Decision ID:</strong> <span class="decision-id"></span></p>
+                        <p><strong>Timestamp:</strong> <span class="timestamp"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Overall Score:</strong> <span class="overall-score"></span></p>
+                        <p><strong>Compliant Requirements:</strong> <span class="compliant-reqs"></span></p>
+                        <div class="remediation-section"></div>
+                    </div>
+                </div>
+                
+                <h6>Trust Factor Scores</h6>
+                <div class="row factor-scores mb-3"></div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="d-flex justify-content-end">
+                            <button class="btn btn-sm btn-info verify-btn me-2">Verify</button>
+                            <button class="btn btn-sm btn-primary report-btn">Generate Report</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="factor-score-template">
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="factor-name"></h6>
+                    <div class="factor-score"></div>
+                    <p class="factor-summary small text-muted"></p>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="requirement-card-template">
+        <div class="card mb-3 requirement-card">
+            <div class="card-body">
+                <h6 class="requirement-id"></h6>
+                <p class="requirement-description"></p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge rounded-pill requirement-category"></span>
+                    <span class="requirement-score"></span>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load applications on page load
+            loadApplications();
+            
+            // Set up event listeners
+            document.getElementById('refreshApplications').addEventListener('click', loadApplications);
+            document.getElementById('refreshDecisions').addEventListener('click', loadDecisions);
+            
+            // Framework radio buttons
+            document.querySelectorAll('input[name="frameworkRadio"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.checked) {
+                        loadFrameworkDetails(this.value);
+                    }
+                });
+            });
+            
+            // Initial framework details load
+            loadFrameworkDetails(document.querySelector('input[name="frameworkRadio"]:checked').value);
+            
+            // Load decisions
+            loadDecisions();
+        });
+        
+        // Load applications
+        function loadApplications() {
+            const appList = document.getElementById('applications-list');
+            appList.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading applications...</p>
+                </div>
+            `;
+            
+            fetch('/api/applications')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(applications => {
+                    appList.innerHTML = '';
+                    
+                    if (!applications || !Array.isArray(applications) || applications.length === 0) {
+                        appList.innerHTML = '<div class="alert alert-info">No applications available</div>';
+                        return;
+                    }
+                    
+                    const template = document.getElementById('application-card-template');
+                    
+                    applications.forEach(app => {
+                        const card = template.content.cloneNode(true);
+                        
+                        card.querySelector('.app-id').textContent = app.id;
+                        card.querySelector('.app-amount').textContent = app.loan_amount;
+                        card.querySelector('.app-purpose').textContent = app.purpose;
+                        card.querySelector('.app-grade').textContent = app.grade;
+                        
+                        const processBtn = card.querySelector('.process-btn');
+                        processBtn.setAttribute('data-id', app.id);
+                        processBtn.addEventListener('click', function() {
+                            const appId = this.getAttribute('data-id');
+                            processApplication(appId);
+                        });
+                        
+                        appList.appendChild(card);
+                    });
+                })
+                .catch(error => {
+                    appList.innerHTML = `<div class="alert alert-danger">Error loading applications: ${error.message}</div>`;
+                    console.error('Error loading applications:', error);
+                });
+        }
+        
+        // Process application
+        function processApplication(appId) {
+            const framework = document.querySelector('input[name="frameworkRadio"]:checked').value;
+            const resultsDiv = document.getElementById('compliance-results');
+            
+            resultsDiv.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Processing application...</p>
+                </div>
+            `;
+            
+            fetch('/api/process', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    application_id: appId,
+                    framework: framework
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                displayComplianceResult(result, resultsDiv);
+                
+                // Update decisions list
+                loadDecisions();
+            })
+            .catch(error => {
+                resultsDiv.innerHTML = `<div class="alert alert-danger">Error processing application: ${error.message}</div>`;
+            });
+        }
+        
+        // Display compliance result
+        function displayComplianceResult(result, container) {
+            const template = document.getElementById('compliance-result-template');
+            const content = template.content.cloneNode(true);
+            
+            const compliant = result.compliance_result.compliant;
+            
+            // Set header status
+            const statusHeader = content.querySelector('.compliance-status');
+            const statusText = content.querySelector('.status-text');
+            const statusBadge = content.querySelector('.badge');
+            
+            if (compliant) {
+                statusHeader.classList.add('bg-success', 'text-white');
+                statusText.textContent = 'COMPLIANT';
+                statusBadge.classList.add('bg-light', 'text-success');
+                statusBadge.textContent = 'Passed';
+            } else {
+                statusHeader.classList.add('bg-danger', 'text-white');
+                statusText.textContent = 'NON-COMPLIANT';
+                statusBadge.classList.add('bg-light', 'text-danger');
+                statusBadge.textContent = 'Failed';
+            }
+            
+            // Set basic info
+            content.querySelector('.framework').textContent = result.framework;
+            content.querySelector('.decision-id').textContent = result.decision_id;
+            content.querySelector('.timestamp').textContent = result.timestamp || new Date().toISOString();
+            
+            // Set scores
+            if (result.compliance_result.overall_score) {
+                content.querySelector('.overall-score').textContent = `${result.compliance_result.overall_score.toFixed(1)}/100`;
+            } else {
+                content.querySelector('.overall-score').textContent = 'N/A';
+            }
+            
+            if (result.compliance_result.compliant_requirements && result.compliance_result.total_requirements) {
+                content.querySelector('.compliant-reqs').textContent = 
+                    `${result.compliance_result.compliant_requirements}/${result.compliance_result.total_requirements} (${result.compliance_result.compliance_percentage?.toFixed(1) || 0}%)`;
+            } else {
+                content.querySelector('.compliant-reqs').textContent = 'N/A';
+            }
+            
+            // Set remediation if not compliant
+            if (!compliant && result.compliance_result.remediation) {
+                const remediationSection = content.querySelector('.remediation-section');
+                remediationSection.innerHTML = `
+                    <p><strong>Remediation:</strong></p>
+                    <div class="alert alert-warning">
+                        ${result.compliance_result.remediation.suggestion || result.compliance_result.remediation}
+                    </div>
+                `;
+            }
+            
+            // Set factor scores
+            const factorScoresContainer = content.querySelector('.factor-scores');
+            
+            if (result.compliance_result.factors) {
+                const factorTemplate = document.getElementById('factor-score-template');
+                
+                Object.entries(result.compliance_result.factors).forEach(([factorId, factorData]) => {
+                    const factorCard = factorTemplate.content.cloneNode(true);
+                    
+                    // Format factor name from ID
+                    const formattedName = factorId
+                        .split('_')
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(' ');
+                    
+                    factorCard.querySelector('.factor-name').textContent = formattedName;
+                    
+                    const scoreElement = factorCard.querySelector('.factor-score');
+                    const score = factorData.score;
+                    scoreElement.textContent = `${score.toFixed(1)}`;
+                    
+                    if (score >= 80) {
+                        scoreElement.classList.add('score-high');
+                    } else if (score >= 60) {
+                        scoreElement.classList.add('score-medium');
+                    } else {
+                        scoreElement.classList.add('score-low');
+                    }
+                    
+                    factorCard.querySelector('.factor-summary').textContent = factorData.summary;
+                    
+                    factorScoresContainer.appendChild(factorCard);
+                });
+            } else {
+                factorScoresContainer.innerHTML = '<div class="col-12"><div class="alert alert-info">No factor details available</div></div>';
+            }
+            
+            // Set up buttons
+            const verifyBtn = content.querySelector('.verify-btn');
+            verifyBtn.setAttribute('data-id', result.decision_id);
+            verifyBtn.addEventListener('click', function() {
+                const decisionId = this.getAttribute('data-id');
+                verifyDecision(decisionId);
+            });
+            
+            const reportBtn = content.querySelector('.report-btn');
+            reportBtn.setAttribute('data-id', result.decision_id);
+            reportBtn.addEventListener('click', function() {
+                const decisionId = this.getAttribute('data-id');
+                generateReport(decisionId);
+            });
+            
+            // Clear container and append result
+            container.innerHTML = '';
+            container.appendChild(content);
+        }
+        
+        // Load decisions
+        function loadDecisions() {
+            const decisionsDiv = document.getElementById('decisions-list');
+            
+            decisionsDiv.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading decisions...</p>
+                </div>
+            `;
+            
+            fetch('/api/decisions')
+                .then(response => response.json())
+                .then(decisions => {
+                    if (!decisions || !Array.isArray(decisions) || decisions.length === 0) {
+                        decisionsDiv.innerHTML = '<div class="alert alert-info">No decisions processed yet</div>';
+                        return;
+                    }
+                    
+                    decisionsDiv.innerHTML = `
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Application</th>
+                                        <th>Framework</th>
+                                        <th>Status</th>
+                                        <th>Timestamp</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="decisions-table-body"></tbody>
+                            </table>
+                        </div>
+                    `;
+                    
+                    const tableBody = document.getElementById('decisions-table-body');
+                    const template = document.getElementById('decision-row-template');
+                    
+                    decisions.forEach(decision => {
+                        const row = template.content.cloneNode(true);
+                        const compliant = decision.compliance_result.compliant;
+                        
+                        row.querySelector('.decision-id').textContent = decision.decision_id;
+                        row.querySelector('.application-id').textContent = decision.application_id;
+                        row.querySelector('.framework').textContent = decision.framework;
+                        
+                        const statusCell = row.querySelector('.status');
+                        statusCell.textContent = compliant ? 'COMPLIANT' : 'NON-COMPLIANT';
+                        statusCell.classList.add(compliant ? 'compliance-pass' : 'compliance-fail');
+                        
+                        row.querySelector('.timestamp').textContent = decision.timestamp || 'N/A';
+                        
+                        // Set up buttons
+                        const viewBtn = row.querySelector('.view-btn');
+                        viewBtn.setAttribute('data-id', decision.decision_id);
+                        viewBtn.addEventListener('click', function() {
+                            const decisionId = this.getAttribute('data-id');
+                            viewDecision(decisionId);
+                        });
+                        
+                        const verifyBtn = row.querySelector('.verify-btn');
+                        verifyBtn.setAttribute('data-id', decision.decision_id);
+                        verifyBtn.addEventListener('click', function() {
+                            const decisionId = this.getAttribute('data-id');
+                            verifyDecision(decisionId);
+                        });
+                        
+                        const reportBtn = row.querySelector('.report-btn');
+                        reportBtn.setAttribute('data-id', decision.decision_id);
+                        reportBtn.addEventListener('click', function() {
+                            const decisionId = this.getAttribute('data-id');
+                            generateReport(decisionId);
+                        });
+                        
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    decisionsDiv.innerHTML = `<div class="alert alert-danger">Error loading decisions: ${error.message}</div>`;
+                    console.error('Error loading decisions:', error);
+                });
+        }
+        
+        // View decision details
+        function viewDecision(decisionId) {
+            const detailsDiv = document.getElementById('decision-details');
+            
+            detailsDiv.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading decision details...</p>
+                </div>
+            `;
+            
+            fetch(`/api/decision/${decisionId}`)
+                .then(response => response.json())
+                .then(decision => {
+                    // Switch to decisions tab if not already active
+                    const decisionsTab = document.getElementById('v-pills-decisions-tab');
+                    bootstrap.Tab.getOrCreateInstance(decisionsTab).show();
+                    
+                    // Display decision details
+                    displayComplianceResult(decision, detailsDiv);
+                })
+                .catch(error => {
+                    detailsDiv.innerHTML = `<div class="alert alert-danger">Error loading decision: ${error.message}</div>`;
+                    console.error('Error loading decision:', error);
+                });
+        }
+        
+        // Verify decision
+        function verifyDecision(decisionId) {
+            // Get the container based on active tab
+            let container;
+            if (document.getElementById('v-pills-applications').classList.contains('active')) {
+                container = document.getElementById('compliance-results');
+            } else {
+                container = document.getElementById('decision-details');
+            }
+            
+            // Add verification loading indicator
+            const verificationDiv = document.createElement('div');
+            verificationDiv.className = 'alert alert-info mt-3';
+            verificationDiv.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Verifying decision integrity...</span>
+                </div>
+            `;
+            container.appendChild(verificationDiv);
+            
+            fetch(`/api/verify/${decisionId}`)
+                .then(response => response.json())
+                .then(result => {
+                    // Replace verification div with result
+                    verificationDiv.className = result.verified ? 'alert alert-success mt-3' : 'alert alert-danger mt-3';
+                    verificationDiv.innerHTML = `
+                        <h5>Verification Result</h5>
+                        <p><strong>Status:</strong> ${result.verified ? 'Verified' : 'Failed'}</p>
+                        <p><strong>Method:</strong> ${result.verification_method}</p>
+                        <p><strong>Timestamp:</strong> ${result.timestamp}</p>
+                    `;
+                })
+                .catch(error => {
+                    verificationDiv.className = 'alert alert-danger mt-3';
+                    verificationDiv.innerHTML = `
+                        <h5>Verification Error</h5>
+                        <p>${error.message}</p>
+                    `;
+                });
+        }
+        
+        // Generate report
+        function generateReport(decisionId) {
+            // Open report in new window
+            window.open(`/api/report/${decisionId}`, '_blank');
+            
+            // Update reports list
+            updateReportsList();
+        }
+        
+        // Update reports list
+        function updateReportsList() {
+            const reportsDiv = document.getElementById('reports-list');
+            
+            fetch('/api/decisions')
+                .then(response => response.json())
+                .then(decisions => {
+                    if (!decisions || !Array.isArray(decisions) || decisions.length === 0) {
+                        reportsDiv.innerHTML = '<div class="alert alert-info">No reports available yet. Process applications to generate reports.</div>';
+                        return;
+                    }
+                    
+                    reportsDiv.innerHTML = `
+                        <div class="list-group">
+                            ${decisions.map(decision => `
+                                <a href="/api/report/${decision.decision_id}" target="_blank" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Compliance Report: ${decision.decision_id}</h6>
+                                        <small>${decision.timestamp || 'N/A'}</small>
+                                    </div>
+                                    <p class="mb-1">Application: ${decision.application_id} | Framework: ${decision.framework}</p>
+                                    <small class="${decision.compliance_result.compliant ? 'text-success' : 'text-danger'}">
+                                        ${decision.compliance_result.compliant ? 'COMPLIANT' : 'NON-COMPLIANT'}
+                                    </small>
+                                </a>
+                            `).join('')}
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    reportsDiv.innerHTML = `<div class="alert alert-danger">Error loading reports: ${error.message}</div>`;
+                    console.error('Error loading reports:', error);
+                });
+        }
+        
+        // Load framework details
+        function loadFrameworkDetails(frameworkName) {
+            const detailsDiv = document.getElementById('framework-details');
+            const mappingDiv = document.getElementById('requirements-mapping');
+            
+            detailsDiv.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading framework details...</p>
+                </div>
+            `;
+            
+            mappingDiv.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading requirements mapping...</p>
+                </div>
+            `;
+            
+            // This would be a real API endpoint in production
+            // For demo, we'll use mock data
+            const frameworkDetails = {
+                'EU_AI_ACT': {
+                    name: 'EU AI Act',
+                    description: 'European Union Artificial Intelligence Act, focusing on transparency, fairness, and accountability in AI systems',
+                    requirements: [
+                        { id: 'EUAI-01', description: 'Transparency: AI systems must provide clear information about their capabilities and limitations', category: 'Transparency' },
+                        { id: 'EUAI-02', description: 'Fairness: AI systems must avoid unfair bias and discrimination', category: 'Fairness' },
+                        { id: 'EUAI-03', description: 'Human Oversight: AI systems must enable effective oversight by humans', category: 'Governance' },
+                        { id: 'EUAI-04', description: 'Robustness: AI systems must be technically robust and accurate', category: 'Technical' },
+                        { id: 'EUAI-05', description: 'Data Quality: AI systems must use high-quality training and operational data', category: 'Data' },
+                        { id: 'EUAI-06', description: 'Documentation: AI systems must maintain comprehensive documentation of development and operation', category: 'Documentation' },
+                        { id: 'EUAI-07', description: 'Risk Management: AI systems must implement appropriate risk management measures', category: 'Risk' }
+                    ],
+                    mappings: {
+                        'data_quality': ['EUAI-05', 'EUAI-04', 'EUAI-07'],
+                        'model_confidence': ['EUAI-04', 'EUAI-01', 'EUAI-07'],
+                        'regulatory_alignment': ['EUAI-06', 'EUAI-03', 'EUAI-01'],
+                        'ethical_considerations': ['EUAI-02', 'EUAI-03', 'EUAI-07']
+                    }
+                },
+                'FINRA': {
+                    name: 'FINRA',
+                    description: 'Financial Industry Regulatory Authority framework, focusing on investor protection and market integrity',
+                    requirements: [
+                        { id: 'FINRA-01', description: 'Suitability: Recommendations must be suitable for the specific customer', category: 'Suitability' },
+                        { id: 'FINRA-02', description: 'Disclosure: Clear disclosure of risks, costs, and conflicts of interest', category: 'Disclosure' },
+                        { id: 'FINRA-03', description: 'Fair Pricing: Reasonable and fair pricing of financial products', category: 'Pricing' },
+                        { id: 'FINRA-04', description: 'Risk Assessment: Proper assessment of customer risk tolerance', category: 'Risk' },
+                        { id: 'FINRA-05', description: 'Record Keeping: Maintenance of accurate and complete records', category: 'Documentation' },
+                        { id: 'FINRA-06', description: 'Supervision: Adequate supervision of automated systems', category: 'Governance' },
+                        { id: 'FINRA-07', description: 'Data Security: Protection of customer data and financial information', category: 'Security' }
+                    ],
+                    mappings: {
+                        'data_quality': ['FINRA-05', 'FINRA-04', 'FINRA-07'],
+                        'model_confidence': ['FINRA-04', 'FINRA-01', 'FINRA-06'],
+                        'regulatory_alignment': ['FINRA-05', 'FINRA-02', 'FINRA-06'],
+                        'ethical_considerations': ['FINRA-01', 'FINRA-02', 'FINRA-03']
+                    }
+                },
+                'internal': {
+                    name: 'Internal',
+                    description: 'Internal compliance framework for loan application processing',
+                    requirements: [
+                        { id: 'INT-01', description: 'Data Validation: All loan application data must be validated', category: 'Data' },
+                        { id: 'INT-02', description: 'Risk Assessment: Proper risk assessment for all applications', category: 'Risk' },
+                        { id: 'INT-03', description: 'Documentation: Complete documentation of all decisions', category: 'Documentation' },
+                        { id: 'INT-04', description: 'Approval Process: Multi-level approval for high-risk loans', category: 'Process' },
+                        { id: 'INT-05', description: 'Monitoring: Ongoing monitoring of loan performance', category: 'Monitoring' }
+                    ],
+                    mappings: {
+                        'data_quality': ['INT-01', 'INT-03'],
+                        'model_confidence': ['INT-02', 'INT-05'],
+                        'regulatory_alignment': ['INT-03', 'INT-04'],
+                        'ethical_considerations': ['INT-02', 'INT-04']
+                    }
+                }
+            };
+            
+            const framework = frameworkDetails[frameworkName];
+            
+            if (!framework) {
+                detailsDiv.innerHTML = `<div class="alert alert-warning">Framework details not found for ${frameworkName}</div>`;
+                mappingDiv.innerHTML = `<div class="alert alert-warning">Requirements mapping not found for ${frameworkName}</div>`;
+                return;
+            }
+            
+            // Display framework details
+            detailsDiv.innerHTML = `
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">${framework.name}</h5>
+                        <p class="card-text">${framework.description}</p>
+                        <h6 class="mt-3">Requirements</h6>
+                        <div class="requirements-list"></div>
+                    </div>
+                </div>
+            `;
+            
+            const requirementsList = detailsDiv.querySelector('.requirements-list');
+            const requirementTemplate = document.getElementById('requirement-card-template');
+            
+            framework.requirements.forEach(req => {
+                const reqCard = requirementTemplate.content.cloneNode(true);
+                
+                reqCard.querySelector('.requirement-id').textContent = req.id;
+                reqCard.querySelector('.requirement-description').textContent = req.description;
+                
+                const categoryBadge = reqCard.querySelector('.requirement-category');
+                categoryBadge.textContent = req.category;
+                
+                // Set category color
+                const categoryColors = {
+                    'Transparency': 'bg-info',
+                    'Fairness': 'bg-success',
+                    'Governance': 'bg-primary',
+                    'Technical': 'bg-secondary',
+                    'Data': 'bg-warning text-dark',
+                    'Documentation': 'bg-light text-dark',
+                    'Risk': 'bg-danger',
+                    'Suitability': 'bg-success',
+                    'Disclosure': 'bg-info',
+                    'Pricing': 'bg-warning text-dark',
+                    'Security': 'bg-danger',
+                    'Process': 'bg-primary',
+                    'Monitoring': 'bg-secondary'
+                };
+                
+                categoryBadge.classList.add(categoryColors[req.category] || 'bg-secondary');
+                
+                requirementsList.appendChild(reqCard);
+            });
+            
+            // Display requirements mapping
+            mappingDiv.innerHTML = `
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Trust Factor to Requirement Mapping</h5>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Trust Factor</th>
+                                        <th>Requirements</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${Object.entries(framework.mappings).map(([factor, reqs]) => {
+                                        // Format factor name
+                                        const formattedFactor = factor
+                                            .split('_')
+                                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                            .join(' ');
+                                        
+                                        return `
+                                            <tr>
+                                                <td>${formattedFactor}</td>
+                                                <td>
+                                                    ${reqs.map(req => `
+                                                        <span class="badge bg-primary me-1">${req}</span>
+                                                    `).join('')}
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

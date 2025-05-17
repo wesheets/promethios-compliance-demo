@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Executive Dashboard - Promethios</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        .card { margin-bottom: 20px; }
+        .compliance-pass { color: green; }
+        .compliance-fail { color: red; }
+        .loading { opacity: 0.5; }
+        .dashboard-header {
+            background-color: #f8f9fa;
+            padding: 15px 0;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #6610f2;
+        }
+        .metric-card {
+            text-align: center;
+            padding: 20px;
+        }
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .metric-label {
+            font-size: 1rem;
+            color: #6c757d;
+        }
+        .metric-trend {
+            font-size: 0.9rem;
+        }
+        .trend-up {
+            color: #198754;
+        }
+        .trend-down {
+            color: #dc3545;
+        }
+        .trend-neutral {
+            color: #6c757d;
+        }
+        .chart-container {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        .status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .status-green {
+            background-color: #198754;
+        }
+        .status-yellow {
+            background-color: #ffc107;
+        }
+        .status-red {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Promethios Compliance Dashboard</h2>
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" id="roleDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-briefcase"></i> Executive
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="roleDropdown">
+                        <li><a class="dropdown-item" href="/compliance-officer">Compliance Officer</a></li>
+                        <li><a class="dropdown-item" href="/data-scientist">Data Scientist</a></li>
+                        <li><a class="dropdown-item active" href="/executive">Executive</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/">Standard View</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Navigation</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                            <button class="nav-link active" id="v-pills-overview-tab" data-bs-toggle="pill" data-bs-target="#v-pills-overview" type="button" role="tab" aria-controls="v-pills-overview" aria-selected="true">
+                                <i class="bi bi-speedometer2"></i> Overview
+                            </button>
+                            <button class="nav-link" id="v-pills-compliance-tab" data-bs-toggle="pill" data-bs-target="#v-pills-compliance" type="button" role="tab" aria-controls="v-pills-compliance" aria-selected="false">
+                                <i class="bi bi-shield-check"></i> Compliance Status
+                            </button>
+                            <button class="nav-link" id="v-pills-risk-tab" data-bs-toggle="pill" data-bs-target="#v-pills-risk" type="button" role="tab" aria-controls="v-pills-risk" aria-selected="false">
+                                <i class="bi bi-exclamation-triangle"></i> Risk Management
+                            </button>
+                            <button class="nav-link" id="v-pills-reports-tab" data-bs-toggle="pill" data-bs-target="#v-pills-reports" type="button" role="tab" aria-controls="v-pills-reports" aria-selected="false">
+                                <i class="bi bi-file-earmark-text"></i> Reports
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Regulatory Frameworks</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="frameworkRadio" id="frameworkEU" value="EU_AI_ACT" checked>
+                            <label class="form-check-label" for="frameworkEU">
+                                EU AI Act
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="frameworkRadio" id="frameworkFINRA" value="FINRA">
+                            <label class="form-check-label" for="frameworkFINRA">
+                                FINRA
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="frameworkRadio" id="frameworkInternal" value="internal">
+                            <label class="form-check-label" for="frameworkInternal">
+                                Internal
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-9">
+                <div class="tab-content" id="v-pills-tabContent">
+                    <!-- Overview Tab -->
+                    <div class="tab-pane fade show active" id="v-pills-overview" role="tabpanel" aria-labelledby="v-pills-overview-tab">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body metric-card">
+                                        <div class="metric-value text-primary">85.4%</div>
+                                        <div class="metric-label">Overall Compliance</div>
+                                        <div class="metric-trend trend-up">
+                                            <i class="bi bi-arrow-up"></i> 2.7% from last month
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body metric-card">
+                                        <div class="metric-value text-success">92.3%</div>
+                                        <div class="metric-label">Loan Approval Rate</div>
+                                        <div class="metric-trend trend-up">
+                                            <i class="bi bi-arrow-up"></i> 1.5% from last month
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body metric-card">
+                                        <div class="metric-value text-danger">7.8%</div>
+                                        <div class="metric-label">Compliance Risk</div>
+                                        <div class="metric-trend trend-down">
+                                            <i class="bi bi-arrow-down"></i> 1.2% from last month
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5>Compliance Trend</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary" id="refreshOverview">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="complianceTrendChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5>Regulatory Framework Comparison</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="chart-container">
+                                            <canvas id="frameworkComparisonChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Framework</th>
+                                                        <th>Compliance</th>
+                                                        <th>Risk Level</th>
+                                                        <th>Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>EU AI Act</td>
+                                                        <td>85.4%</td>
+                                                        <td>Medium</td>
+                                                        <td><span class="status-indicator status-yellow"></span> Needs Attention</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>FINRA</td>
+                                                        <td>88.7%</td>
+                                                        <td>Low</td>
+                                                        <td><span class="status-indicator status-green"></span> Compliant</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Internal</td>
+                                                        <td>92.1%</td>
+                                                        <td>Low</td>
+                                                        <td><span class="status-indicator status-green"></span> Compliant</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Compliance Status Tab -->
+                    <div class="tab-pane fade" id="v-pills-compliance" role="tabpanel" aria-labelledby="v-pills-compliance-tab">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5>Compliance Status by Department</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary" id="refreshCompliance">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="departmentComplianceChart"></canvas>
+                                </div>
+                                
+                                <div class="table-responsive mt-4">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Department</th>
+                                                <th>Compliance Score</th>
+                                                <th>Issues</th>
+                                                <th>Status</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Loan Origination</td>
+                                                <td>92.5%</td>
+                                                <td>0</td>
+                                                <td><span class="status-indicator status-green"></span> Compliant</td>
+                                                <td><button class="btn btn-sm btn-outline-primary">View Details</button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Credit Risk</td>
+                                                <td>87.3%</td>
+                                                <td>2</td>
+                                                <td><span class="status-indicator status-yellow"></span> Needs Attention</td>
+                                                <td><button class="btn btn-sm btn-outline-primary">View Details</button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Fraud Detection</td>
+                                                <td>90.8%</td>
+                                                <td>1</td>
+                                                <td><span class="status-indicator status-green"></span> Compliant</td>
+                                                <td><button class="btn btn-sm btn-outline-primary">View Details</button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Customer Service</td>
+                                                <td>78.2%</td>
+                                                <td>5</td>
+                                                <td><span class="status-indicator status-red"></span> Non-Compliant</td>
+                                                <td><button class="btn btn-sm btn-outline-primary">View Details</button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Collections</td>
+                                                <td>85.6%</td>
+                                                <td>2</td>
+                                                <td><span class="status-indicator status-yellow"></span> Needs Attention</td>
+                                                <td><button class="btn btn-sm btn-outline-primary">View Details</button></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5>Trust Factor Analysis</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="chart-container">
+                                            <canvas id="trustFactorChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="alert alert-warning">
+                                            <h6><i class="bi bi-exclamation-triangle"></i> Compliance Alert</h6>
+                                            <p>Regulatory Alignment score (78.6%) is below target threshold (80%) for EU AI Act compliance.</p>
+                                            <p><strong>Impact:</strong> Potential regulatory risk if not addressed within 30 days.</p>
+                                            <p><strong>Recommendation:</strong> Prioritize documentation updates and model validation for EU AI Act requirements.</p>
+                                        </div>
+                                        
+                                        <div class="alert alert-info">
+                                            <h6><i class="bi bi-info-circle"></i> Improvement Opportunity</h6>
+                                            <p>Data Quality score has improved by 5.2% over the past quarter, contributing to overall compliance improvement.</p>
+                                            <p><strong>Recommendation:</strong> Continue data quality initiatives with focus on address verification processes.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Risk Management Tab -->
+                    <div class="tab-pane fade" id="v-pills-risk" role="tabpanel" aria-labelledby="v-pills-risk-tab">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5>Risk Assessment</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary" id="refreshRisk">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="chart-container">
+                                            <canvas id="riskHeatmapChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="chart-container">
+                                            <canvas id="riskTrendChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <h6 class="mt-3">Top Compliance Risks</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Risk</th>
+                                                <th>Severity</th>
+                                                <th>Probability</th>
+                                                <th>Impact</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Incomplete documentation for EU AI Act</td>
+                                                <td>High</td>
+                                                <td>Medium</td>
+                                                <td>Regulatory penalties</td>
+                                                <td><span class="badge bg-warning text-dark">In Progress</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Data quality issues in address verification</td>
+                                                <td>Medium</td>
+                                                <td>High</td>
+                                                <td>Model performance degradation</td>
+                                                <td><span class="badge bg-warning text-dark">In Progress</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Fairness concerns in loan approval model</td>
+                                                <td>Medium</td>
+                                                <td>Low</td>
+                                                <td>Potential discrimination claims</td>
+                                                <td><span class="badge bg-success">Mitigated</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Explainability gaps for high-risk decisions</td>
+                                                <td>Medium</td>
+                                                <td>Medium</td>
+                                                <td>Regulatory non-compliance</td>
+                                                <td><span class="badge bg-warning text-dark">In Progress</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Inadequate model monitoring frequency</td>
+                                                <td>Low</td>
+                                                <td>Medium</td>
+                                                <td>Delayed detection of issues</td>
+                                                <td><span class="badge bg-info">Planned</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5>Mitigation Strategies</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="accordion" id="mitigationAccordion">
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header" id="headingOne">
+                                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                                Documentation Enhancement Plan
+                                            </button>
+                                        </h2>
+                                        <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#mitigationAccordion">
+                                            <div class="accordion-body">
+                                                <p><strong>Objective:</strong> Improve documentation coverage for EU AI Act compliance from 78.2% to 90%+</p>
+                                                <p><strong>Timeline:</strong> 30 days</p>
+                                                <p><strong>Resources:</strong> Compliance team (2 FTEs), Data Science team (1 FTE)</p>
+                                                <p><strong>Key Actions:</strong></p>
+                                                <ul>
+                                                    <li>Complete model cards for all production models</li>
+                                                    <li>Update data quality documentation with verification procedures</li>
+                                                    <li>Formalize fairness assessment methodology</li>
+                                                    <li>Create comprehensive explainability documentation</li>
+                                                </ul>
+                                                <div class="progress mt-2">
+                                                    <div class="progress-bar bg-primary" role="progressbar" style="width: 45%;" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100">45% Complete</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header" id="headingTwo">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                                Data Quality Improvement Initiative
+                                            </button>
+                                        </h2>
+                                        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#mitigationAccordion">
+                                            <div class="accordion-body">
+                                                <p><strong>Objective:</strong> Increase address verification completeness from 65.4% to 85%+</p>
+                                                <p><strong>Timeline:</strong> 60 days</p>
+                                                <p><strong>Resources:</strong> Data Engineering team (2 FTEs), Third-party verification service</p>
+                                                <p><strong>Key Actions:</strong></p>
+                                                <ul>
+                                                    <li>Implement enhanced address validation API</li>
+                                                    <li>Develop data quality monitoring dashboard</li>
+                                                    <li>Create automated data quality alerts</li>
+                                                    <li>Establish remediation process for low-quality data</li>
+                                                </ul>
+                                                <div class="progress mt-2">
+                                                    <div class="progress-bar bg-primary" role="progressbar" style="width: 70%;" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100">70% Complete</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header" id="headingThree">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                                Explainability Enhancement Project
+                                            </button>
+                                        </h2>
+                                        <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#mitigationAccordion">
+                                            <div class="accordion-body">
+                                                <p><strong>Objective:</strong> Improve explainability score from 76.5% to 85%+ for EU AI Act compliance</p>
+                                                <p><strong>Timeline:</strong> 45 days</p>
+                                                <p><strong>Resources:</strong> Data Science team (2 FTEs), Compliance team (1 FTE)</p>
+                                                <p><strong>Key Actions:</strong></p>
+                                                <ul>
+                                                    <li>Implement SHAP value analysis for all models</li>
+                                                    <li>Develop natural language explanation generator</li>
+                                                    <li>Create user-friendly explanation interfaces</li>
+                                                    <li>Establish explainability validation process</li>
+                                                </ul>
+                                                <div class="progress mt-2">
+                                                    <div class="progress-bar bg-primary" role="progressbar" style="width: 30%;" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100">30% Complete</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reports Tab -->
+                    <div class="tab-pane fade" id="v-pills-reports" role="tabpanel" aria-labelledby="v-pills-reports-tab">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5>Compliance Reports</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-plus-circle"></i> New Report
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Report Name</th>
+                                                <th>Framework</th>
+                                                <th>Date</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Q2 2025 EU AI Act Compliance Report</td>
+                                                <td>EU AI Act</td>
+                                                <td>May 15, 2025</td>
+                                                <td><span class="badge bg-success">Completed</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary" id="viewPdfReport">
+                                                        <i class="bi bi-file-earmark-pdf"></i> View PDF
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-secondary">
+                                                        <i class="bi bi-download"></i> Download
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>FINRA Compliance Audit Report</td>
+                                                <td>FINRA</td>
+                                                <td>Apr 30, 2025</td>
+                                                <td><span class="badge bg-success">Completed</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-file-earmark-pdf"></i> View PDF
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-secondary">
+                                                        <i class="bi bi-download"></i> Download
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Model Fairness Assessment Report</td>
+                                                <td>Internal</td>
+                                                <td>Apr 15, 2025</td>
+                                                <td><span class="badge bg-success">Completed</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-file-earmark-pdf"></i> View PDF
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-secondary">
+                                                        <i class="bi bi-download"></i> Download
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Data Quality Quarterly Report</td>
+                                                <td>All</td>
+                                                <td>Mar 31, 2025</td>
+                                                <td><span class="badge bg-success">Completed</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-file-earmark-pdf"></i> View PDF
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-secondary">
+                                                        <i class="bi bi-download"></i> Download
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Q3 2025 Compliance Forecast</td>
+                                                <td>All</td>
+                                                <td>May 20, 2025</td>
+                                                <td><span class="badge bg-warning text-dark">In Progress</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary" disabled>
+                                                        <i class="bi bi-file-earmark-pdf"></i> View PDF
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-secondary" disabled>
+                                                        <i class="bi bi-download"></i> Download
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5>Report Preview</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="reportPreview">
+                                    <div class="text-center p-5">
+                                        <i class="bi bi-file-earmark-text fs-1 text-muted"></i>
+                                        <p class="mt-3">Select a report to preview</p>
+                                    </div>
+                                </div>
+                                
+                                <div id="pdfReportModal" class="modal fade" tabindex="-1" aria-labelledby="pdfReportModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="pdfReportModalLabel">Q2 2025 EU AI Act Compliance Report</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="ratio ratio-16x9">
+                                                    <iframe src="about:blank" title="PDF Report Preview"></iframe>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                <button type="button" class="btn btn-primary">Download</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize charts
+            initializeCharts();
+            
+            // Set up event listeners
+            document.getElementById('refreshOverview').addEventListener('click', refreshOverview);
+            document.getElementById('refreshCompliance').addEventListener('click', refreshCompliance);
+            document.getElementById('refreshRisk').addEventListener('click', refreshRisk);
+            
+            // PDF report viewer
+            document.getElementById('viewPdfReport').addEventListener('click', function() {
+                const pdfModal = new bootstrap.Modal(document.getElementById('pdfReportModal'));
+                pdfModal.show();
+            });
+        });
+        
+        // Initialize all charts
+        function initializeCharts() {
+            // Compliance Trend Chart
+            const complianceTrendCtx = document.getElementById('complianceTrendChart').getContext('2d');
+            new Chart(complianceTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'EU AI Act',
+                        data: [75.2, 78.5, 80.1, 82.3, 84.7, 85.4],
+                        borderColor: 'rgb(102, 16, 242)',
+                        backgroundColor: 'rgba(102, 16, 242, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }, {
+                        label: 'FINRA',
+                        data: [80.5, 82.1, 84.3, 85.6, 87.2, 88.7],
+                        borderColor: 'rgb(32, 201, 151)',
+                        backgroundColor: 'rgba(32, 201, 151, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }, {
+                        label: 'Internal',
+                        data: [82.3, 85.7, 87.2, 89.5, 91.2, 92.1],
+                        borderColor: 'rgb(13, 110, 253)',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Compliance Score Trend by Framework'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 70,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Framework Comparison Chart
+            const frameworkComparisonCtx = document.getElementById('frameworkComparisonChart').getContext('2d');
+            new Chart(frameworkComparisonCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Data Quality', 'Model Confidence', 'Regulatory Alignment', 'Ethical Considerations', 'Documentation'],
+                    datasets: [{
+                        label: 'EU AI Act',
+                        data: [87.5, 92.3, 78.6, 85.2, 76.8],
+                        backgroundColor: 'rgba(102, 16, 242, 0.2)',
+                        borderColor: 'rgb(102, 16, 242)',
+                        pointBackgroundColor: 'rgb(102, 16, 242)',
+                        pointBorderColor: '#fff'
+                    }, {
+                        label: 'FINRA',
+                        data: [85.3, 90.1, 88.7, 82.5, 85.6],
+                        backgroundColor: 'rgba(32, 201, 151, 0.2)',
+                        borderColor: 'rgb(32, 201, 151)',
+                        pointBackgroundColor: 'rgb(32, 201, 151)',
+                        pointBorderColor: '#fff'
+                    }, {
+                        label: 'Internal',
+                        data: [90.2, 93.5, 92.1, 88.7, 90.3],
+                        backgroundColor: 'rgba(13, 110, 253, 0.2)',
+                        borderColor: 'rgb(13, 110, 253)',
+                        pointBackgroundColor: 'rgb(13, 110, 253)',
+                        pointBorderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            min: 70,
+                            max: 100,
+                            ticks: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Department Compliance Chart
+            const departmentComplianceCtx = document.getElementById('departmentComplianceChart').getContext('2d');
+            new Chart(departmentComplianceCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Loan Origination', 'Credit Risk', 'Fraud Detection', 'Customer Service', 'Collections'],
+                    datasets: [{
+                        label: 'Compliance Score',
+                        data: [92.5, 87.3, 90.8, 78.2, 85.6],
+                        backgroundColor: [
+                            'rgba(32, 201, 151, 0.7)',
+                            'rgba(255, 193, 7, 0.7)',
+                            'rgba(32, 201, 151, 0.7)',
+                            'rgba(220, 53, 69, 0.7)',
+                            'rgba(255, 193, 7, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgb(32, 201, 151)',
+                            'rgb(255, 193, 7)',
+                            'rgb(32, 201, 151)',
+                            'rgb(220, 53, 69)',
+                            'rgb(255, 193, 7)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Compliance Score by Department'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 70,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Trust Factor Chart
+            const trustFactorCtx = document.getElementById('trustFactorChart').getContext('2d');
+            new Chart(trustFactorCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Data Quality', 'Model Confidence', 'Regulatory Alignment', 'Ethical Considerations'],
+                    datasets: [{
+                        data: [87.5, 92.3, 78.6, 85.2],
+                        backgroundColor: [
+                            'rgba(32, 201, 151, 0.7)',
+                            'rgba(102, 16, 242, 0.7)',
+                            'rgba(255, 193, 7, 0.7)',
+                            'rgba(13, 110, 253, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgb(32, 201, 151)',
+                            'rgb(102, 16, 242)',
+                            'rgb(255, 193, 7)',
+                            'rgb(13, 110, 253)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Trust Factor Scores'
+                        }
+                    }
+                }
+            });
+            
+            // Risk Heatmap Chart (using bubble chart as approximation)
+            const riskHeatmapCtx = document.getElementById('riskHeatmapChart').getContext('2d');
+            new Chart(riskHeatmapCtx, {
+                type: 'bubble',
+                data: {
+                    datasets: [{
+                        label: 'Documentation',
+                        data: [{
+                            x: 3.5, // Probability
+                            y: 4.2, // Impact
+                            r: 15 // Size represents risk severity
+                        }],
+                        backgroundColor: 'rgba(220, 53, 69, 0.7)'
+                    }, {
+                        label: 'Data Quality',
+                        data: [{
+                            x: 4.1,
+                            y: 3.2,
+                            r: 12
+                        }],
+                        backgroundColor: 'rgba(255, 193, 7, 0.7)'
+                    }, {
+                        label: 'Fairness',
+                        data: [{
+                            x: 2.3,
+                            y: 3.8,
+                            r: 10
+                        }],
+                        backgroundColor: 'rgba(255, 193, 7, 0.7)'
+                    }, {
+                        label: 'Explainability',
+                        data: [{
+                            x: 3.2,
+                            y: 3.5,
+                            r: 12
+                        }],
+                        backgroundColor: 'rgba(255, 193, 7, 0.7)'
+                    }, {
+                        label: 'Monitoring',
+                        data: [{
+                            x: 3.0,
+                            y: 2.5,
+                            r: 8
+                        }],
+                        backgroundColor: 'rgba(13, 110, 253, 0.7)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Risk Heatmap'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            min: 1,
+                            max: 5,
+                            title: {
+                                display: true,
+                                text: 'Probability'
+                            }
+                        },
+                        y: {
+                            min: 1,
+                            max: 5,
+                            title: {
+                                display: true,
+                                text: 'Impact'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Risk Trend Chart
+            const riskTrendCtx = document.getElementById('riskTrendChart').getContext('2d');
+            new Chart(riskTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Overall Risk Score',
+                        data: [12.5, 11.2, 10.3, 9.5, 8.6, 7.8],
+                        borderColor: 'rgb(220, 53, 69)',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Compliance Risk Trend'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 15,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Refresh overview data
+        function refreshOverview() {
+            console.log('Refreshing overview data...');
+            alert('Overview data refreshed');
+        }
+        
+        // Refresh compliance data
+        function refreshCompliance() {
+            console.log('Refreshing compliance data...');
+            alert('Compliance data refreshed');
+        }
+        
+        // Refresh risk data
+        function refreshRisk() {
+            console.log('Refreshing risk data...');
+            alert('Risk data refreshed');
+        }
+    </script>
+</body>
+</html>
