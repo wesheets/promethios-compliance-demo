@@ -97,4 +97,4 @@ class ComplianceWrapper:
                 "framework": regulatory_framework,
                 "details": f"Trust score {trust_score} below {regulatory_framework} threshold of {threshold}",
                 "remediation": "Escalate to human reviewer"
-            } }
+            }
