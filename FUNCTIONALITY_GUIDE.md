@@ -11,8 +11,9 @@ This guide provides a detailed explanation of the Phase 2 features implemented i
 5. [Lender Recommendations and Compliance Timeline](#5-lender-recommendations-and-compliance-timeline)
 6. [PDF Report Generation](#6-pdf-report-generation)
 7. [Lending Club API Integration](#7-lending-club-api-integration)
-8. [Configuration and Environment Variables](#8-configuration-and-environment-variables)
-9. [API Reference](#9-api-reference)
+8. [Backend Analysis Logging](#8-backend-analysis-logging)
+9. [Configuration and Environment Variables](#9-configuration-and-environment-variables)
+10. [API Reference](#10-api-reference)
 
 ## 1. Multi-Factor Trust Evaluation Framework
 
@@ -428,90 +429,358 @@ loan = api.get_loan_details("123456")
 
 # Generate mock data for testing
 mock_loans = api.mock_loan_data(count=5)
-
-# Use the loan data for compliance evaluation
-for loan in loans:
-    trust_result = trust_framework.evaluate_application(loan)
-    compliance_result = registry.evaluate_compliance("EU_AI_ACT", loan, trust_result)
-    # ... process the results
 ```
 
-## 8. Configuration and Environment Variables
+## 8. Backend Analysis Logging
 
-The system requires several environment variables for proper operation in production:
+The Backend Analysis Logging feature provides real-time visibility into the detailed processing steps happening in the backend, even when using sample data.
+
+### Key Components
+
+- **AnalysisLogger**: A thread-safe logging system that captures detailed analysis steps
+- **Log API Endpoint**: An API endpoint that exposes logs to the frontend
+- **Real-time Logging Panel**: A UI component that displays logs with filtering and auto-refresh
+
+### How It Works
+
+1. **Log Capture**: During application processing, the system logs detailed information about each analysis step:
+   - Data quality assessment
+   - Model confidence calculations
+   - Regulatory requirement mapping
+   - Ethical considerations analysis
+   - Final compliance decisions
+
+2. **Log Storage**: Logs are stored in a thread-safe, in-memory buffer with configurable size limits
+
+3. **Log Retrieval**: The frontend can retrieve logs through the `/api/logs` endpoint:
+   - Filtering by application ID
+   - Filtering by analysis step type
+   - Limiting the number of logs returned
+
+4. **Real-time Display**: The UI displays logs in a color-coded, scrollable panel:
+   - Green: Data Quality Analysis
+   - Blue: Model Confidence Analysis
+   - Orange: Regulatory Alignment Analysis
+   - Purple: Ethical Considerations Analysis
+   - Red: Compliance Decisions
+
+5. **Auto-refresh**: The logging panel can automatically refresh to show new logs as they are generated
+
+### Usage Example
+
+#### Backend Logging
+
+```python
+from compliance_api.analysis_logger import (
+    log_data_quality_analysis,
+    log_model_confidence_analysis,
+    log_regulatory_alignment_analysis,
+    log_ethical_considerations_analysis,
+    log_overall_compliance_decision
+)
+
+# Log data quality analysis
+log_data_quality_analysis(
+    application_id="LC_1001",
+    framework="EU_AI_ACT",
+    completeness=0.92,
+    consistency=0.88,
+    accuracy=0.95
+)
+
+# Log model confidence analysis
+log_model_confidence_analysis(
+    application_id="LC_1001",
+    framework="EU_AI_ACT",
+    prediction_certainty=0.85,
+    model_robustness=0.78
+)
+
+# Log regulatory alignment analysis
+log_regulatory_alignment_analysis(
+    application_id="LC_1001",
+    framework="EU_AI_ACT",
+    requirements_met=8,
+    requirements_total=10
+)
+
+# Log ethical considerations analysis
+log_ethical_considerations_analysis(
+    application_id="LC_1001",
+    framework="EU_AI_ACT",
+    fairness_score=0.90,
+    bias_risk=0.15
+)
+
+# Log overall compliance decision
+log_overall_compliance_decision(
+    application_id="LC_1001",
+    framework="EU_AI_ACT",
+    compliant=True,
+    trust_score=0.88,
+    explanation="Application meets all critical requirements with high data quality and model confidence."
+)
+```
+
+#### Frontend Log Retrieval
+
+```javascript
+// Fetch logs with filtering
+async function fetchLogs(applicationId = null, stepType = null) {
+    let url = '/api/logs?limit=50';
+    
+    if (applicationId) {
+        url += `&application_id=${applicationId}`;
+    }
+    
+    if (stepType && stepType !== 'all') {
+        url += `&step_type=${stepType}`;
+    }
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    return data.logs;
+}
+
+// Display logs in the UI
+function displayLogs(logs) {
+    const logsContainer = document.getElementById('logs-container');
+    logsContainer.innerHTML = '';
+    
+    logs.forEach(log => {
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-entry log-type-${log.step_type}`;
+        
+        // Format timestamp
+        const timestamp = new Date(log.timestamp);
+        const formattedTime = timestamp.toLocaleTimeString();
+        
+        // Format details for display
+        const details = JSON.stringify(log.details, null, 2);
+        
+        // Create log entry content
+        logEntry.innerHTML = `
+            <div>
+                <span class="fw-bold">${log.step_type.replace('_', ' ').toUpperCase()}</span>
+                <span class="text-muted"> | App: ${log.application_id} | Framework: ${log.framework}</span>
+                <span class="log-timestamp float-end">${formattedTime}</span>
+            </div>
+            <div class="log-details">
+                <pre>${details}</pre>
+            </div>
+        `;
+        
+        logsContainer.appendChild(logEntry);
+    });
+}
+```
+
+### UI Features
+
+1. **Color-coded Log Entries**: Different analysis types are color-coded for easy identification
+2. **Auto-refresh Toggle**: Users can enable or disable automatic refreshing of logs
+3. **Manual Refresh Button**: Users can manually refresh logs at any time
+4. **Filtering Options**: Users can filter logs by analysis type
+5. **Detailed JSON Data**: Each log entry shows the detailed JSON data for the analysis step
+6. **Timestamp Tracking**: Each log entry includes a timestamp for tracking the sequence of events
+
+## 9. Configuration and Environment Variables
+
+The system uses environment variables for configuration, allowing easy deployment in different environments.
 
 ### Required Environment Variables
 
-- **OPENAI_API_KEY**: API key for OpenAI (required for conversational explainability)
-- **LENDING_CLUB_API_KEY**: API key for Lending Club (required for API integration)
-- **FLASK_SECRET_KEY**: Secret key for Flask session security
-- **DATABASE_URL**: Connection string for the database (if using persistent storage)
+- `OPENAI_API_KEY`: Your OpenAI API key (required for conversational explainability)
+- `FLASK_SECRET_KEY`: Secret key for Flask session security
 
 ### Optional Environment Variables
 
-- **LOG_LEVEL**: Logging level (default: INFO)
-- **PORT**: Port for the web server (default: 5000)
-- **TRUST_THRESHOLD**: Default threshold for trustworthiness (default: 80.0)
-- **COMPLIANCE_THRESHOLD**: Default threshold for compliance (default: 80.0)
-- **STORAGE_PATH**: Path for persistent storage of timelines (default: in-memory)
+- `LENDING_CLUB_API_KEY`: Your Lending Club API key (for real loan data)
+- `LENDING_CLUB_API_URL`: URL of the Lending Club API (defaults to production URL)
+- `LOG_LEVEL`: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- `MAX_LOGS`: Maximum number of logs to keep in memory (defaults to 100)
+- `WEB_URL`: URL of the web UI (for CORS configuration)
 
-### Configuration in Production
+### Configuration Example
 
-For production deployment on Render, set these environment variables in the Render dashboard:
+```bash
+# .env file
+OPENAI_API_KEY=sk-your-openai-api-key
+FLASK_SECRET_KEY=your-secret-key
+LENDING_CLUB_API_KEY=your-lending-club-api-key
+LOG_LEVEL=INFO
+MAX_LOGS=200
+WEB_URL=https://promethios-compliance-web.onrender.com
+```
 
-1. Go to the Render dashboard
-2. Select your service
-3. Go to the "Environment" tab
-4. Add each required environment variable
-5. Click "Save Changes"
+## 10. API Reference
 
-## 9. API Reference
+The system provides a comprehensive API for integration with other systems.
 
-The system provides several API endpoints for integration with other systems:
+### Authentication
 
-### Trust Evaluation API
+All API endpoints require authentication using an API key header:
 
-- **GET /api/trust-factors**: List available trust factors
-- **POST /api/evaluate-trust**: Evaluate an application using the trust framework
-  - Request body: Application data
-  - Response: Trust evaluation result with factor scores
+```
+X-API-Key: your-api-key
+```
 
-### Regulatory Compliance API
+### Endpoints
 
-- **GET /api/frameworks**: List available regulatory frameworks
-- **GET /api/frameworks/{framework}/requirements**: List requirements for a specific framework
-- **POST /api/evaluate-compliance**: Evaluate compliance against a specific framework
-  - Request body: Application data and framework ID
-  - Response: Compliance evaluation result with requirement status
+#### GET /api/applications
 
-### Timeline API
+Returns a list of available loan applications.
 
-- **GET /api/timeline/{application_id}**: Get the complete timeline for an application
-- **GET /api/timeline/{application_id}/compliance**: Get compliance history for an application
-- **GET /api/timeline/{application_id}/trends**: Get compliance score trends for an application
-- **POST /api/timeline/{application_id}/event**: Add an event to the timeline
-  - Request body: Event type and data
-  - Response: Created event
+**Query Parameters**:
+- `count` (optional): Maximum number of applications to return (default: 10)
 
-### Explanation API
+**Response**:
+```json
+[
+  {
+    "id": "LC_1001",
+    "loan_amount": 10000,
+    "interest_rate": 5.32,
+    "grade": "A",
+    "employment_length": 10,
+    "home_ownership": "RENT",
+    "annual_income": 60000,
+    "purpose": "debt_consolidation",
+    "dti": 15.2,
+    "delinq_2yrs": 0
+  },
+  // ... more applications
+]
+```
 
-- **POST /api/explain**: Get an explanation for a compliance decision
-  - Request body: Decision data and optional query
-  - Response: Natural language explanation
-- **POST /api/recommendations**: Get recommendations for improving compliance
-  - Request body: Application data and trust factors
-  - Response: List of prioritized recommendations
+#### POST /api/process
 
-### Report API
+Processes a loan application against a regulatory framework.
 
-- **POST /api/generate-report**: Generate a PDF compliance report
-  - Request body: Decision data, trust factors, and recommendations
-  - Response: Base64-encoded PDF data
+**Request Body**:
+```json
+{
+  "application_id": "LC_1001",
+  "framework": "EU_AI_ACT"
+}
+```
 
-### Lending Club API
+**Response**:
+```json
+{
+  "decision_id": "decision_LC_1001_EU_AI_ACT",
+  "application_id": "LC_1001",
+  "framework": "EU_AI_ACT",
+  "timestamp": "2023-04-15T10:30:00Z",
+  "compliance_result": {
+    "compliant": true,
+    "details": "EU AI Act requires transparent decision-making and fair treatment.",
+    "remediation": "",
+    "trust_score": 0.88
+  },
+  "application_data": {
+    // ... application data
+  }
+}
+```
 
-- **GET /api/loans**: Get available loans from Lending Club
-  - Query parameters: limit, offset, filters
-  - Response: List of transformed loan applications
-- **GET /api/loans/{loan_id}**: Get details for a specific loan
-  - Response: Transformed loan application data
+#### GET /api/decisions
+
+Returns a list of all processed decisions.
+
+**Response**:
+```json
+[
+  {
+    "decision_id": "decision_LC_1001_EU_AI_ACT",
+    "application_id": "LC_1001",
+    "framework": "EU_AI_ACT",
+    "timestamp": "2023-04-15T10:30:00Z",
+    "compliance_result": {
+      "compliant": true,
+      "details": "EU AI Act requires transparent decision-making and fair treatment.",
+      "remediation": "",
+      "trust_score": 0.88
+    },
+    "application_data": {
+      // ... application data
+    }
+  },
+  // ... more decisions
+]
+```
+
+#### GET /api/decision/{decision_id}
+
+Returns a specific decision by ID.
+
+**Response**:
+```json
+{
+  "decision_id": "decision_LC_1001_EU_AI_ACT",
+  "application_id": "LC_1001",
+  "framework": "EU_AI_ACT",
+  "timestamp": "2023-04-15T10:30:00Z",
+  "compliance_result": {
+    "compliant": true,
+    "details": "EU AI Act requires transparent decision-making and fair treatment.",
+    "remediation": "",
+    "trust_score": 0.88
+  },
+  "application_data": {
+    // ... application data
+  }
+}
+```
+
+#### GET /api/verify/{decision_id}
+
+Verifies the integrity of a decision.
+
+**Response**:
+```json
+{
+  "decision_id": "decision_LC_1001_EU_AI_ACT",
+  "verified": true,
+  "verification_method": "cryptographic_hash",
+  "timestamp": "2023-04-15T10:35:00Z"
+}
+```
+
+#### GET /api/logs
+
+Returns analysis logs with optional filtering.
+
+**Query Parameters**:
+- `limit` (optional): Maximum number of logs to return (default: 50)
+- `application_id` (optional): Filter logs by application ID
+- `step_type` (optional): Filter logs by step type (data_quality, model_confidence, etc.)
+
+**Response**:
+```json
+{
+  "logs": [
+    {
+      "timestamp": "2023-04-15T10:30:00Z",
+      "step_type": "data_quality",
+      "application_id": "LC_1001",
+      "framework": "EU_AI_ACT",
+      "details": {
+        "completeness_score": 0.92,
+        "consistency_score": 0.88,
+        "accuracy_score": 0.95,
+        "overall_score": 0.92,
+        "analysis_time_ms": 123
+      }
+    },
+    // ... more logs
+  ],
+  "count": 1,
+  "filters": {
+    "limit": 50,
+    "application_id": "LC_1001",
+    "step_type": null
+  }
+}
+```
