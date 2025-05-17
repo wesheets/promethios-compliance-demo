@@ -2,11 +2,24 @@ import os
 import sys
 import json
 import jsonschema
+import base64
+import io
 from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import uvicorn
+import random
+
+# Import the analysis logger
+from compliance_api.analysis_logger import (
+    get_logs,
+    log_data_quality_analysis,
+    log_model_confidence_analysis,
+    log_regulatory_alignment_analysis,
+    log_ethical_considerations_analysis,
+    log_overall_compliance_decision
+)
 
 # Load environment variables
 load_dotenv()
@@ -220,8 +233,53 @@ async def process_application(request: Request):
     if not application:
         raise HTTPException(status_code=404, detail=f"Application {application_id} not found")
     
+    # Generate logs for the processing steps
+    # Data quality analysis
+    log_data_quality_analysis(
+        application_id=application_id,
+        framework=framework,
+        completeness=random.uniform(0.8, 1.0),
+        consistency=random.uniform(0.75, 1.0),
+        accuracy=random.uniform(0.85, 1.0)
+    )
+    
+    # Model confidence analysis
+    log_model_confidence_analysis(
+        application_id=application_id,
+        framework=framework,
+        prediction_certainty=random.uniform(0.7, 0.95),
+        model_robustness=random.uniform(0.75, 0.9)
+    )
+    
+    # Regulatory alignment analysis
+    requirements_total = 10
+    requirements_met = random.randint(7, 10)
+    log_regulatory_alignment_analysis(
+        application_id=application_id,
+        framework=framework,
+        requirements_met=requirements_met,
+        requirements_total=requirements_total
+    )
+    
+    # Ethical considerations analysis
+    log_ethical_considerations_analysis(
+        application_id=application_id,
+        framework=framework,
+        fairness_score=random.uniform(0.8, 0.95),
+        bias_risk=random.uniform(0.05, 0.2)
+    )
+    
     # Evaluate compliance (simplified for demo)
     compliance_result = evaluate_compliance(application, framework)
+    
+    # Log the final decision
+    log_overall_compliance_decision(
+        application_id=application_id,
+        framework=framework,
+        compliant=compliance_result["compliant"],
+        trust_score=random.uniform(0.7, 0.9),
+        explanation=compliance_result["details"]
+    )
     
     # Generate decision ID
     decision_id = f"decision_{application_id}_{framework}"
@@ -289,6 +347,68 @@ def evaluate_compliance(application, framework):
         "compliant": compliant,
         "details": details,
         "remediation": "" if compliant else remediation
+    }
+
+# New endpoint for logs
+@app.get("/api/logs", summary="Get Analysis Logs", tags=["Compliance"])
+async def get_analysis_logs(limit: int = 50, application_id: str = None, step_type: str = None):
+    logs = get_logs(limit=limit, application_id=application_id, step_type=step_type)
+    return {
+        "logs": logs,
+        "count": len(logs),
+        "filters": {
+            "limit": limit,
+            "application_id": application_id,
+            "step_type": step_type
+        }
+    }
+
+# New endpoint for report generation
+@app.get("/api/generate-report/{decision_id}", summary="Generate Compliance Report", tags=["Compliance"])
+async def generate_report(decision_id: str):
+    decision = decisions_store.get(decision_id)
+    if not decision:
+        raise HTTPException(status_code=404, detail=f"Decision {decision_id} not found")
+    
+    # For demo purposes, we'll return a simple PDF report as base64
+    # In a real implementation, this would generate a proper PDF with charts and detailed information
+    
+    # Create a simple report content
+    report_content = f"""
+    COMPLIANCE REPORT
+    
+    Decision ID: {decision_id}
+    Application ID: {decision['application_id']}
+    Framework: {decision['framework']}
+    Timestamp: {decision['timestamp']}
+    
+    COMPLIANCE RESULT: {"COMPLIANT" if decision['compliance_result']['compliant'] else "NON-COMPLIANT"}
+    
+    Details: {decision['compliance_result']['details']}
+    
+    {"Remediation: " + decision['compliance_result']['remediation'] if not decision['compliance_result']['compliant'] else ""}
+    
+    APPLICATION DATA:
+    Loan Amount: ${decision['application_data']['loan_amount']}
+    Interest Rate: {decision['application_data']['interest_rate']}%
+    Grade: {decision['application_data']['grade']}
+    Employment Length: {decision['application_data']['employment_length']} years
+    Annual Income: ${decision['application_data']['annual_income']}
+    Purpose: {decision['application_data']['purpose']}
+    DTI: {decision['application_data']['dti']}
+    Delinquencies (2yrs): {decision['application_data']['delinq_2yrs']}
+    
+    This report was generated automatically by the Promethios Compliance Demo.
+    """
+    
+    # In a real implementation, we would use a PDF library to create a proper PDF
+    # For demo purposes, we'll just return the text as base64
+    pdf_data_base64 = base64.b64encode(report_content.encode('utf-8')).decode('utf-8')
+    
+    return {
+        "decision_id": decision_id,
+        "report_generated": True,
+        "pdf_data": pdf_data_base64
     }
 
 # Run the app if executed directly
