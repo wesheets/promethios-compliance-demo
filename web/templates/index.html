@@ -8,12 +8,72 @@
         .compliance-pass { color: green; }
         .compliance-fail { color: red; }
         .loading { opacity: 0.5; }
+        .nav-pills .nav-link.active {
+            background-color: #6c757d;
+        }
+        .role-badge {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <h1>Promethios Compliance Replay Demo</h1>
-        <p class="lead">AI Governance for Regulatory Compliance</p>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Promethios Compliance</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/">Home</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="dashboardsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Role-Specific Dashboards
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="dashboardsDropdown">
+                            <li><a class="dropdown-item" href="/compliance-officer">Compliance Officer</a></li>
+                            <li><a class="dropdown-item" href="/data-scientist">Data Scientist</a></li>
+                            <li><a class="dropdown-item" href="/executive">Executive</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">
+                            <i class="bi bi-question-circle"></i> Help
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1>Promethios Compliance Replay Demo</h1>
+                <p class="lead">AI Governance for Regulatory Compliance</p>
+            </div>
+            <div class="d-flex">
+                <a href="/compliance-officer" class="btn btn-outline-primary me-2">
+                    Compliance Officer Dashboard
+                    <span class="badge bg-primary role-badge">New</span>
+                </a>
+                <a href="/data-scientist" class="btn btn-outline-success me-2">
+                    Data Scientist Dashboard
+                    <span class="badge bg-success role-badge">New</span>
+                </a>
+                <a href="/executive" class="btn btn-outline-info">
+                    Executive Dashboard
+                    <span class="badge bg-info role-badge">New</span>
+                </a>
+            </div>
+        </div>
         
         <div class="row mt-4">
             <div class="col-md-6">
@@ -61,6 +121,43 @@
         </div>
     </div>
     
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="helpModalLabel">Promethios Compliance Demo Help</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h5>Role-Specific Dashboards</h5>
+                    <p>Phase 2 introduces specialized dashboards for different user roles:</p>
+                    <ul>
+                        <li><strong>Compliance Officer Dashboard</strong> - Focused on regulatory compliance status and remediation tracking</li>
+                        <li><strong>Data Scientist Dashboard</strong> - Focused on model performance, data quality, and trust factors</li>
+                        <li><strong>Executive Dashboard</strong> - High-level compliance overview with key metrics and trends</li>
+                    </ul>
+                    
+                    <h5>Multi-Factor Trust Evaluation</h5>
+                    <p>Applications are now evaluated across multiple trust dimensions:</p>
+                    <ul>
+                        <li>Data Quality</li>
+                        <li>Model Confidence</li>
+                        <li>Regulatory Alignment</li>
+                        <li>Ethical Considerations</li>
+                    </ul>
+                    
+                    <h5>OpenAI-Powered Explanations</h5>
+                    <p>The system now provides natural language explanations of compliance decisions and can answer follow-up questions.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Fetch applications on page load
         fetch('/api/applications')
